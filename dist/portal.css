@@ -75,3 +75,16 @@ aside>a { gap:10px; } aside>a p:first-child { color:#133c62; }
 .cleaning-name-badge { background:#fffdf6; border-color:#eadfbf; }
 .announcement-alert-heading { color:#0054a0; }
 #announcement-alert .announcement-item { background:#f0f5fa; }
+
+/* Unified blue interface; official HF logo colors remain intact. */
+:root { --secondary-50:.975 .01 250; --secondary-100:.945 .025 250; --secondary-200:.89 .045 250; --secondary-500:.62 .12 250; --secondary-800:.4 .075 250; --secondary-950:.25 .04 250; }
+.attendance-card,.is-attended,.calendar-day.is-today,.current-stage,.attendance-dates span,.board-meta,.board-reply,.board-tag,.message,.place-result { background:#edf4fb; border-color:#d5e3f0; }
+.attendance-card button:disabled { background:#477ca8; }
+.attendance-mark,.calendar-day small,.notice-check,.current-stage,.board-tag,.restaurant-tag { color:#245d8b; }
+.restaurant-tag { background:#e8f1fa; }
+.task-check input,.row input[type=checkbox],.notice-check input { accent-color:#0054a0; }
+.milestone.earned span { background:#d9eafa; color:#0054a0; }
+#reflex-play { background:#eff5fa; border-color:#bad1e5; color:#214866; }
+#calendar-preview { color:#203f5c; border-color:#cfdeeb; } #calendar-preview p { border-color:#e0eaf3; }
+.calendar-controls button,.mobile-nav { background:#f0f5fa; border-color:#d3e1ed; }
+
