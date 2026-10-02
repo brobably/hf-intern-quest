@@ -1,7 +1,7 @@
 /* Shared boards; authorization is enforced by the server. */
 async function boardRequest(path,data){
  const response=await fetch('/api/boards/'+path,{credentials:'same-origin',...(data?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}:{})});
- const result=await response.json();if(!response.ok)throw Error(result.error||'요청에 실패했습니다.');return result;
+ const result=await response.json();if(!response.ok)throw Error(result.error||'요청에 실패했습니다.');if(data)loadActivity();return result;
 }
 async function renderBoard(kind,content){
  const admin=window.hfAuth.user.role==='admin',news=['articles','jobs'].includes(kind);
