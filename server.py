@@ -5,6 +5,7 @@ from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
 from http.cookies import SimpleCookie
 from contextlib import contextmanager
 from datetime import datetime,timezone,timedelta
+from storage import connect,IntegrityError
 BASE=Path(__file__).resolve().parent
 DATA=Path(os.environ.get('HF_DATA',str(BASE/'data')));DATA.mkdir(exist_ok=True)
 DB=DATA/'accounts.sqlite3'
@@ -14,10 +15,7 @@ SECURE=os.environ.get('HF_HTTPS')=='1'
 attempts={}
 @contextmanager
 def db():
- c=sqlite3.connect(DB);c.row_factory=sqlite3.Row
- try:
-  with c:yield c
- finally:c.close()
+ with connect(DB) as c:yield c
 with db() as c:
  c.executescript('''CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,employee TEXT UNIQUE NOT NULL,name TEXT NOT NULL,salt TEXT NOT NULL,hash TEXT NOT NULL,status TEXT NOT NULL,role TEXT NOT NULL DEFAULT 'intern',state TEXT NOT NULL DEFAULT '{}');CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL,expires INTEGER NOT NULL);''')
  c.execute('CREATE TABLE IF NOT EXISTS attendance(user_id INTEGER NOT NULL,day TEXT NOT NULL,PRIMARY KEY(user_id,day))')
@@ -95,7 +93,7 @@ class Handler(SimpleHTTPRequestHandler):
       c.execute('BEGIN IMMEDIATE')
       if is_admin and c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0]:return self.reply(409,{'error':'관리자 설정이 완료되어 있습니다.'})
       c.execute('INSERT INTO users(employee,name,salt,hash,status,role) VALUES(?,?,?,?,?,?)',(employee,name.strip(),salt,hashed,'approved' if is_admin else 'pending','admin' if is_admin else 'intern'))
-    except sqlite3.IntegrityError:return self.reply(409,{'error':'이미 등록된 사원번호입니다. 관리자에게 문의해 주세요.'})
+    except IntegrityError:return self.reply(409,{'error':'이미 등록된 사원번호입니다. 관리자에게 문의해 주세요.'})
     return self.reply(201,{'message':'관리자 계정이 생성되었습니다. 로그인해 주세요.' if is_admin else '가입 신청이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.'})
    with db() as c:u=c.execute('SELECT * FROM users WHERE employee=?',(employee,)).fetchone()
    salt=u['salt'] if u else '00'*16;computed=digest(password,salt)

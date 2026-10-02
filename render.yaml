@@ -1,12 +1,12 @@
-# Requires approval of paid service and disk before applying.
+# Free web service; external Neon Free Postgres stores account data.
 services:
   - type: web
     name: hf-intern-quest
     runtime: python
-    plan: starter
+    plan: free
     region: singapore
     branch: main
-    buildCommand: python -m py_compile server.py
+    buildCommand: pip install -r requirements.txt
     startCommand: python server.py
     autoDeployTrigger: commit
     healthCheckPath: /api/me
@@ -15,11 +15,7 @@ services:
         value: 0.0.0.0
       - key: HF_HTTPS
         value: "1"
-      - key: HF_DATA
-        value: /var/data
+      - key: DATABASE_URL
+        sync: false
       - key: HF_ADMIN_SEED
         sync: false
-    disk:
-      name: hf-accounts
-      mountPath: /var/data
-      sizeGB: 1
