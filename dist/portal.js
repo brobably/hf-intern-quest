@@ -29,6 +29,23 @@ function calendarMarkup(){
  const cells=Array.from({length:Math.ceil((first+days)/7)*7},(_,i)=>{const day=i-first+1;if(day<1||day>days)return '<div class="calendar-empty" aria-hidden="true"></div>';const dateKey=`${calendarYear}-${String(calendarMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`,checked=attendance?.days.includes(dateKey);const today=calendarYear===calendarParts[0]&&calendarMonth===calendarParts[1]-1&&day===calendarParts[2];return `<button type="button" data-event-day="${dateKey}" aria-label="${dateKey} 일정 보기" class="calendar-day ${i%7===0?'sunday':i%7===6?'saturday':''} ${today?'is-today':''} ${checked?'is-attended':''}" ${today?'aria-current="date"':''}><span>${day}</span>${today?'<small>오늘</small>':''}${checked?'<small class="attendance-mark">✓ 출석</small>':''}${activityState?.events?.some(x=>x.day===dateKey)?'<small class="event-mark">● 일정</small>':''}</button>`}).join('');
  return `<div class="calendar-heading"><h2>달력 <span>${calendarYear}년 ${calendarMonth+1}월</span></h2><div class="calendar-controls"><button type="button" data-calendar="-1" aria-label="이전 달">이전 달</button><button type="button" data-calendar="today">오늘</button><button type="button" data-calendar="1" aria-label="다음 달">다음 달</button></div></div><div class="calendar-week" aria-hidden="true">${['일','월','화','수','목','금','토'].map(d=>`<span>${d}</span>`).join('')}</div><div class="calendar-grid" aria-label="${calendarYear}년 ${calendarMonth+1}월 달력">${cells}</div>`;
 }
+let calendarPreviewTarget=null;
+function hideCalendarPreview(){document.querySelector('#calendar-preview')?.remove();calendarPreviewTarget?.removeAttribute('aria-describedby');calendarPreviewTarget=null;}
+function showCalendarPreview(cell){
+ if(calendarPreviewTarget===cell&&document.querySelector('#calendar-preview'))return;
+ hideCalendarPreview();const day=cell.dataset.eventDay,events=(activityState?.events||[]).filter(e=>e.day===day),tip=document.createElement('div');
+ tip.id='calendar-preview';tip.setAttribute('role','tooltip');tip.innerHTML=`<strong>${esc(day)} 일정</strong>`+(events.length?events.map(e=>`<p>${esc(e.body)}</p>`).join(''):'<p class="muted">등록된 일정이 없습니다.</p>')+'<small>날짜를 클릭하면 추가·삭제할 수 있어요.</small>';
+ document.body.append(tip);calendarPreviewTarget=cell;cell.setAttribute('aria-describedby',tip.id);
+ const r=cell.getBoundingClientRect(),t=tip.getBoundingClientRect();tip.style.left=Math.max(8,Math.min(r.left,window.innerWidth-t.width-8))+'px';tip.style.top=(r.bottom+t.height+8<=window.innerHeight?r.bottom+6:Math.max(8,r.top-t.height-6))+'px';
+ tip.onmouseleave=hideCalendarPreview;
+}
+document.addEventListener('mouseover',e=>{const cell=e.target.closest('[data-event-day]');if(cell)showCalendarPreview(cell);else if(!e.target.closest('#calendar-preview'))hideCalendarPreview();});
+document.addEventListener('mouseout',e=>{if(!e.target.closest('[data-event-day]'))return;const next=e.relatedTarget;if(next?.closest?.('[data-event-day],#calendar-preview'))return;hideCalendarPreview();});
+document.addEventListener('focusin',e=>{const cell=e.target.closest('[data-event-day]');if(cell)showCalendarPreview(cell);else hideCalendarPreview();});
+document.addEventListener('focusout',e=>{if(e.target.closest('[data-event-day]'))hideCalendarPreview();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hideCalendarPreview();});
+document.addEventListener('click',e=>{if(e.target.closest('[data-event-day],[data-calendar]'))hideCalendarPreview();});
+window.addEventListener('hashchange',hideCalendarPreview);window.addEventListener('resize',hideCalendarPreview);window.addEventListener('scroll',hideCalendarPreview);
 document.addEventListener('click',e=>{const button=e.target.closest('[data-calendar]');if(!button)return;if(button.dataset.calendar==='today'){calendarYear=calendarParts[0];calendarMonth=calendarParts[1]-1}else{const date=new Date(calendarYear,calendarMonth+Number(button.dataset.calendar),1);calendarYear=date.getFullYear();calendarMonth=date.getMonth()}document.querySelector('#dashboard-calendar').innerHTML=calendarMarkup();});
 function taskRows(){return state.tasks.map((t,i)=>`<div class="task-row"><label class="task-check"><input type="checkbox" data-task="${i}" ${t[1]?'checked':''}><span>${esc(t[0])}</span></label><small>+5 XP</small><button type="button" class="task-delete" data-delete-task="${i}" aria-label="${esc(t[0])} 삭제">삭제</button></div>`).join('')}
 
