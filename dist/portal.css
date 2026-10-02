@@ -48,7 +48,7 @@ main header{flex-wrap:wrap}main header>div:first-child{max-width:none;flex:1 1 4
 --foreground-500:.56 .018 250; --foreground-600:.47 .02 250; --foreground-700:.39 .02 250; --foreground-900:.24 .02 250; --foreground-950:.18 .02 250; }
 body { color:#203348; background:#f7f9fb; }
 aside { background:#f3f6f9!important; border-color:#dce4eb!important; }
-.hf-brand-symbol { width:42px; height:36px; overflow:hidden; flex-shrink:0; background:white; }
+.hf-brand-symbol { width:42px; height:36px; overflow:hidden; flex-shrink:0; background:transparent; mix-blend-mode:multiply; }
 .hf-brand-symbol img { display:block; height:36px; width:auto; max-width:none; }
 aside>a { gap:10px; } aside>a p:first-child { color:#133c62; }
 .live-hero { background:linear-gradient(120deg,#164b77,#28648b)!important; color:white; border:1px solid #285f85; }
