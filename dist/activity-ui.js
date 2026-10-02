@@ -25,7 +25,7 @@ function paintActivity(){
  for(const section of content.querySelectorAll('section')){
   const heading=section.querySelector('h2');if(!heading)continue;const title=heading.textContent.trim();
   if(title==='이번 달 랭킹')section.innerHTML='<h2>이번 달 랭킹</h2>'+ (a?`<p class="muted">${a.month} · 15초마다 갱신</p>`+memberRows(a.ranking,'xp'):'기록 확인 중…');
-  if(title.startsWith('금주 청소 당번'))section.innerHTML='<h2>금주 청소 당번: '+(a?.cleaning.length?[...new Set(a.cleaning.map(j=>j.name))].map(esc).join(', '):'미배정')+'</h2>';
+  if(title.startsWith('금주 청소 당번')){section.classList.add('cleaning-duty-card');const names=[...new Set((a?.cleaning||[]).map(j=>j.name))];section.innerHTML='<div class="cleaning-duty-heading"><span class="cleaning-duty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m15 3-5 8m-2-1 7 4-5 7-7-4 5-7Z"/><path d="m6 15-2 3m5-1-2 3m11-12v4m-2-2h4"/></svg></span><h2>금주 청소 당번</h2></div><div class="cleaning-duty-names">'+(names.length?names.map(n=>'<span class="cleaning-name-badge">'+esc(n)+'</span>').join(''):'<span class="cleaning-duty-empty">아직 배정되지 않았어요</span>')+'</div>';}
   if(title==='순발력 대결'){const mine=a?.reflex.find(r=>r.id===window.hfAuth.user.id);section.classList.add('dashboard-reflex-card');section.innerHTML='<h2>순발력 대결</h2>'+
 `<p>내 이번 주 최고 기록: ${mine?mine.ms+' ms':'아직 기록 없음'}</p>`+(a?memberRows(a.reflex,'reflex'):'기록 확인 중…')+'<div class="reflex-card-actions"><a href="#reflex" class="primary reflex-card-button">도전하기</a></div>';}
  }
