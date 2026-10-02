@@ -2,6 +2,7 @@
 .sites-runtime/
 .sites-checkout/
 node_modules/
+.runtime/
 *.tar.gz
 .env*
 data/
