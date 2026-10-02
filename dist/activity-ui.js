@@ -45,7 +45,7 @@ document.addEventListener('click',async e=>{
  if(b.id!=='reflex-play')return;const msg=document.querySelector('#reflex-message');
  if(gameRun?.ready){const ms=Math.round(performance.now()-gameStart),token=gameRun.token;gameRun=null;b.classList.remove('ready');b.disabled=true;try{await activityRequest('reflex/result',{token,ms});msg.textContent=`이번 기록 ${ms} ms`;await loadActivity();}catch(error){msg.textContent=error.message;}finally{b.disabled=false;b.textContent='다시 도전하기';}return;}
  if(gameRun){clearTimeout(gameTimer);gameRun=null;b.textContent='너무 빨라요! 다시 시작';msg.textContent='노란색으로 바뀐 뒤 눌러 주세요.';return;}
- b.disabled=true;try{gameRun=await activityRequest('reflex/start');b.disabled=false;b.textContent='기다려 주세요…';gameTimer=setTimeout(()=>{if(!b.isConnected||!gameRun)return;gameRun.ready=true;gameStart=performance.now();b.classList.add('ready');b.textContent='지금!';},gameRun.delay);}catch(error){b.disabled=false;msg.textContent=error.message;}
+ b.disabled=true;try{gameRun=await activityRequest('reflex/start',{});b.disabled=false;b.textContent='기다려 주세요…';gameTimer=setTimeout(()=>{if(!b.isConnected||!gameRun)return;gameRun.ready=true;gameStart=performance.now();b.classList.add('ready');b.textContent='지금!';},gameRun.delay);}catch(error){b.disabled=false;msg.textContent=error.message;}
 });
 window.addEventListener('hashchange',()=>{clearTimeout(gameTimer);gameRun=null;});
 setInterval(()=>{if(!document.hidden)loadActivity();},15000);
