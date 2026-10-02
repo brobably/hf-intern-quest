@@ -6,6 +6,7 @@ def week():
  d=datetime.now(ZONE).date();return (d-timedelta(days=d.weekday())).isoformat()
 def initialize(c):
  c.executescript('''CREATE TABLE IF NOT EXISTS points(user_id INTEGER NOT NULL,event_key TEXT NOT NULL,day TEXT NOT NULL,amount INTEGER NOT NULL,PRIMARY KEY(user_id,event_key));CREATE TABLE IF NOT EXISTS reflex_runs(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL,ready DOUBLE PRECISION NOT NULL,used INTEGER NOT NULL DEFAULT 0);CREATE TABLE IF NOT EXISTS reflex_scores(user_id INTEGER NOT NULL,week TEXT NOT NULL,ms INTEGER NOT NULL,PRIMARY KEY(user_id,week));CREATE TABLE IF NOT EXISTS cleaning_jobs(id INTEGER PRIMARY KEY,week TEXT NOT NULL,user_id INTEGER NOT NULL,area TEXT NOT NULL,done INTEGER NOT NULL DEFAULT 0,UNIQUE(week,user_id,area));''')
+ c.executescript("CREATE TABLE IF NOT EXISTS announcements(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,created TEXT NOT NULL);CREATE TABLE IF NOT EXISTS calendar_events(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,day TEXT NOT NULL,body TEXT NOT NULL);")
 def award(c,uid,key,amount):c.execute('INSERT OR IGNORE INTO points(user_id,event_key,day,amount) VALUES(?,?,?,?)',(uid,key,today(),amount))
 def get(h,u,db):
  if h.path!='/api/activity':return False
@@ -17,10 +18,34 @@ def get(h,u,db):
   cleaning=[dict(r) for r in c.execute('SELECT cleaning_jobs.*,users.name FROM cleaning_jobs JOIN users ON users.id=cleaning_jobs.user_id WHERE week=? ORDER BY cleaning_jobs.id',(week(),))]
   members=[dict(r) for r in c.execute("SELECT id,name FROM users WHERE status='approved' ORDER BY name")]
   history=[dict(r) for r in c.execute('SELECT event_key,day,amount FROM points WHERE user_id=? ORDER BY day DESC LIMIT 30',(u['id'],))]
+  announcements=[dict(r) for r in c.execute('SELECT id,title,body,created FROM announcements ORDER BY id DESC LIMIT 20')]
+  events=[dict(r) for r in c.execute('SELECT id,day,body FROM calendar_events WHERE user_id=? ORDER BY id',(u['id'],))]
   clean_done=c.execute("SELECT COUNT(*) FROM points WHERE user_id=? AND event_key LIKE 'clean:%'",(u['id'],)).fetchone()[0]
- h.reply(200,dict(xp=int(xp),month=month,ranking=ranking,reflex=reflex,cleaning=cleaning,members=members,week=week(),history=history,clean_done=clean_done));return True
+ h.reply(200,dict(xp=int(xp),month=month,ranking=ranking,reflex=reflex,cleaning=cleaning,members=members,week=week(),history=history,clean_done=clean_done,announcements=announcements,events=events));return True
 def post(h,u,d,db):
  path=h.path
+ if path=='/api/announcements/post':
+  if u['role']!='admin':h.reply(403,{'error':'관리자만 공지할 수 있습니다.'});return True
+  title=d.get('title');body=d.get('body')
+  if not isinstance(title,str) or not 1<=len(title.strip())<=120 or not isinstance(body,str) or not 1<=len(body.strip())<=5000:h.reply(400,{'error':'공지 제목과 내용을 확인하세요.'});return True
+  with db() as c:c.execute('INSERT INTO announcements(user_id,title,body,created) VALUES(?,?,?,?)',(u['id'],title.strip(),body.strip(),datetime.now(ZONE).isoformat()))
+  h.reply(201,{'ok':True});return True
+ if path in ['/api/announcements/remove','/api/calendar/remove']:
+  pid=d.get('id')
+  if type(pid)!=int:h.reply(400,{'error':'항목을 확인하세요.'});return True
+  with db() as c:
+   if path.startswith('/api/announcements'):
+    if u['role']!='admin':h.reply(403,{'error':'관리자만 공지를 삭제할 수 있습니다.'});return True
+    c.execute('DELETE FROM announcements WHERE id=?',(pid,))
+   else:c.execute('DELETE FROM calendar_events WHERE id=? AND user_id=?',(pid,u['id']))
+  h.reply(200,{'ok':True});return True
+ if path=='/api/calendar/post':
+  day=d.get('day');body=d.get('body')
+  if not isinstance(day,str) or not isinstance(body,str) or not 1<=len(body.strip())<=1000:h.reply(400,{'error':'날짜와 내용을 확인하세요.'});return True
+  try:datetime.strptime(day,'%Y-%m-%d')
+  except ValueError:h.reply(400,{'error':'날짜를 확인하세요.'});return True
+  with db() as c:c.execute('INSERT INTO calendar_events(user_id,day,body) VALUES(?,?,?)',(u['id'],day,body.strip()))
+  h.reply(201,{'ok':True});return True
  if path=='/api/reflex/start':
   token=secrets.token_urlsafe(24);delay=1600+secrets.randbelow(2500)
   with db() as c:c.execute('INSERT INTO reflex_runs(token,user_id,ready) VALUES(?,?,?)',(token,u['id'],time.time()+delay/1000))

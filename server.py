@@ -21,6 +21,7 @@ with db() as c:
  c.executescript('''CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,employee TEXT UNIQUE NOT NULL,name TEXT NOT NULL,salt TEXT NOT NULL,hash TEXT NOT NULL,status TEXT NOT NULL,role TEXT NOT NULL DEFAULT 'intern',state TEXT NOT NULL DEFAULT '{}');CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL,expires INTEGER NOT NULL);''')
  c.execute('CREATE TABLE IF NOT EXISTS attendance(user_id INTEGER NOT NULL,day TEXT NOT NULL,PRIMARY KEY(user_id,day))')
  c.execute("CREATE TABLE IF NOT EXISTS posts(id INTEGER PRIMARY KEY,kind TEXT NOT NULL,user_id INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,link TEXT NOT NULL DEFAULT '',event_day TEXT NOT NULL DEFAULT '',created TEXT NOT NULL,members TEXT NOT NULL DEFAULT '[]',replies TEXT NOT NULL DEFAULT '[]')")
+ c.execute("CREATE TABLE IF NOT EXISTS user_profiles(user_id INTEGER PRIMARY KEY,department TEXT NOT NULL DEFAULT '',rejection_reason TEXT NOT NULL DEFAULT '')")
  activity.initialize(c)
  # Admin bootstrap is a private runtime secret, never a committed database.
  seed=os.environ.get('HF_ADMIN_SEED')
@@ -72,7 +73,7 @@ class Handler(SimpleHTTPRequestHandler):
   if self.path=='/api/state':return self.reply(200,{'state':json.loads(u['state'])})
   if self.path=='/api/attendance':return self.reply(200,attendance_info(u['id']))
   if self.path=='/api/admin/users' and u['role']=='admin':
-   with db() as c:rows=c.execute('SELECT id,employee,name,status,role FROM users ORDER BY id DESC').fetchall()
+   with db() as c:rows=c.execute("SELECT users.id,employee,name,status,role,COALESCE(department,'') AS department,COALESCE(rejection_reason,'') AS rejection_reason FROM users LEFT JOIN user_profiles ON users.id=user_profiles.user_id ORDER BY users.id DESC").fetchall()
    return self.reply(200,{'users':[dict(x) for x in rows]})
   self.reply(404,{'error':'찾을 수 없습니다.'})
  def do_POST(self):
@@ -98,17 +99,24 @@ class Handler(SimpleHTTPRequestHandler):
     if not isinstance(name,str) or not 1<=len(name.strip())<=40 or len(password)<10:return self.reply(400,{'error':'이름과 10자 이상의 비밀번호를 입력해 주세요.'})
     is_admin=path=='/api/setup'
     if is_admin and self.client_address[0] not in ('127.0.0.1','::1'):return self.reply(403,{'error':'관리자 초기 설정은 서버 컴퓨터에서만 가능합니다.'})
+    department=d.get('department','')
+    if not is_admin and (not isinstance(department,str) or not 1<=len(department.strip())<=80):return self.reply(400,{'error':'부서를 입력해 주세요.'})
     salt=secrets.token_hex(16);hashed=digest(password,salt)
     try:
      with db() as c:
       c.execute('BEGIN IMMEDIATE')
       if is_admin and c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0]:return self.reply(409,{'error':'관리자 설정이 완료되어 있습니다.'})
       c.execute('INSERT INTO users(employee,name,salt,hash,status,role) VALUES(?,?,?,?,?,?)',(employee,name.strip(),salt,hashed,'approved' if is_admin else 'pending','admin' if is_admin else 'intern'))
+      uid=c.execute('SELECT id FROM users WHERE employee=?',(employee,)).fetchone()[0]
+      c.execute('INSERT INTO user_profiles(user_id,department) VALUES(?,?)',(uid,department.strip()))
     except IntegrityError:return self.reply(409,{'error':'이미 등록된 사원번호입니다. 관리자에게 문의해 주세요.'})
     return self.reply(201,{'message':'관리자 계정이 생성되었습니다. 로그인해 주세요.' if is_admin else '가입 신청이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.'})
    with db() as c:u=c.execute('SELECT * FROM users WHERE employee=?',(employee,)).fetchone()
    salt=u['salt'] if u else '00'*16;computed=digest(password,salt)
    if not u or not hmac.compare_digest(computed,u['hash']):return self.reply(401,{'error':'사원번호 또는 비밀번호가 맞지 않습니다.'})
+   if u['status']=='rejected':
+    with db() as c:profile=c.execute('SELECT rejection_reason FROM user_profiles WHERE user_id=?',(u['id'],)).fetchone()
+    return self.reply(403,{'error':'가입 신청이 거절되었습니다. 사유: '+(profile[0] if profile and profile[0] else '관리자에게 문의해 주세요.')})
    if u['status']!='approved':return self.reply(403,{'error':'관리자 승인 대기 중입니다.' if u['status']=='pending' else '가입 신청이 거절되었습니다. 관리자에게 문의해 주세요.'})
    raw=secrets.token_urlsafe(32)
    with db() as c:
@@ -180,11 +188,15 @@ class Handler(SimpleHTTPRequestHandler):
    if u['role']!='admin':return self.reply(403,{'error':'관리자만 사용할 수 있습니다.'})
    status=d.get('status');uid=d.get('id')
    if status not in ['approved','rejected'] or not isinstance(uid,int):return self.reply(400,{'error':'승인 정보를 확인해 주세요.'})
+   reason=d.get('reason','')
+   if not isinstance(reason,str) or len(reason)>1000 or (status=='rejected' and not reason.strip()):return self.reply(400,{'error':'거절 사유를 입력해 주세요.'})
    with db() as c:
     target=c.execute("SELECT id FROM users WHERE id=? AND role='intern' AND status='pending'",(uid,)).fetchone()
     if not target:return self.reply(409,{'error':'처리할 승인 대기 신청이 없습니다.'})
     if status=='approved' and c.execute("SELECT COUNT(*) FROM users WHERE role='intern' AND status='approved'").fetchone()[0]>=30:return self.reply(409,{'error':'승인된 인턴이 30명입니다. 인원 설정을 확인해 주세요.'})
     c.execute('UPDATE users SET status=? WHERE id=?',(status,uid))
+    c.execute('INSERT OR IGNORE INTO user_profiles(user_id) VALUES(?)',(uid,))
+    c.execute('UPDATE user_profiles SET rejection_reason=? WHERE user_id=?',(reason.strip() if status=='rejected' else '',uid))
    return self.reply(200,{'ok':True})
   self.reply(404,{'error':'찾을 수 없습니다.'})
 if __name__=='__main__':
