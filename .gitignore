@@ -1,0 +1,8 @@
+.openai/
+.sites-runtime/
+.sites-checkout/
+node_modules/
+*.tar.gz
+.env*
+data/
+__pycache__/

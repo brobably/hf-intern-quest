@@ -1,0 +1,5 @@
+data
+.git
+.openai
+__pycache__
+.env*
