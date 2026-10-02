@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from datetime import datetime,timezone,timedelta
 from storage import connect,IntegrityError
 import activity
+import meals
 BASE=Path(__file__).resolve().parent
 DATA=Path(os.environ.get('HF_DATA',str(BASE/'data')));DATA.mkdir(exist_ok=True)
 DB=DATA/'accounts.sqlite3'
@@ -23,6 +24,7 @@ with db() as c:
  c.execute("CREATE TABLE IF NOT EXISTS posts(id INTEGER PRIMARY KEY,kind TEXT NOT NULL,user_id INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,link TEXT NOT NULL DEFAULT '',event_day TEXT NOT NULL DEFAULT '',created TEXT NOT NULL,members TEXT NOT NULL DEFAULT '[]',replies TEXT NOT NULL DEFAULT '[]')")
  c.execute("CREATE TABLE IF NOT EXISTS user_profiles(user_id INTEGER PRIMARY KEY,department TEXT NOT NULL DEFAULT '',rejection_reason TEXT NOT NULL DEFAULT '')")
  activity.initialize(c)
+ meals.initialize(c)
  # Admin bootstrap is a private runtime secret, never a committed database.
  seed=os.environ.get('HF_ADMIN_SEED')
  if seed and not c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0]:
@@ -63,6 +65,7 @@ class Handler(SimpleHTTPRequestHandler):
   u=self.user()
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
   if activity.get(self,u,db):return
+  if meals.get(self,u,db):return
   if self.path.startswith('/api/boards/'):
    kind=self.path.split('/')[-1]
    if kind not in ['study','articles','jobs','qna','suggestions']:return self.reply(404,{'error':'게시판이 없습니다.'})
@@ -125,6 +128,7 @@ class Handler(SimpleHTTPRequestHandler):
   u=self.user()
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
   if activity.post(self,u,d,db):return
+  if meals.post(self,u,d,db):return
   if path=='/api/boards/post':
    kind=d.get('kind');title=d.get('title');body=d.get('body');link=d.get('link','');day=d.get('event_day','')
    if kind not in ['study','articles','jobs','qna','suggestions'] or not isinstance(title,str) or not 1<=len(title.strip())<=120 or not isinstance(body,str) or not 1<=len(body.strip())<=5000:return self.reply(400,{'error':'제목과 내용을 확인해 주세요.'})
