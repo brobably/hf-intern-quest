@@ -1,13 +1,28 @@
-import json
+import json,os
+from urllib.parse import urlsplit,parse_qs,urlencode
+from urllib.request import Request,urlopen
+from urllib.error import URLError
 from datetime import datetime
 
 def initialize(c):
  c.execute("CREATE TABLE IF NOT EXISTS meals(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,restaurant TEXT NOT NULL,event_time TEXT NOT NULL,capacity INTEGER NOT NULL,members TEXT NOT NULL)")
+ c.execute("CREATE TABLE IF NOT EXISTS meal_places(meal_id INTEGER PRIMARY KEY,address TEXT NOT NULL,url TEXT NOT NULL)")
 
 def get(h,u,db):
+ if urlsplit(h.path).path=='/api/meals/restaurants':
+  query=parse_qs(urlsplit(h.path).query).get('q',[''])[0].strip()
+  if not 1<=len(query)<=100:h.reply(400,{'error':'식당 이름이나 지역을 입력해 주세요.'});return True
+  key=os.environ.get('KAKAO_REST_API_KEY')
+  if not key:h.reply(503,{'error':'지도 식당 검색 연결을 준비 중입니다. 식당 이름을 직접 입력해 등록할 수 있습니다.'});return True
+  request=Request('https://dapi.kakao.com/v2/local/search/keyword.json?'+urlencode({'query':query,'category_group_code':'FD6','size':10}),headers={'Authorization':'KakaoAK '+key})
+  try:
+   with urlopen(request,timeout=8) as response:data=json.load(response)
+   h.reply(200,{'places':[{'name':p['place_name'],'address':p.get('road_address_name') or p.get('address_name',''),'url':p['place_url']} for p in data.get('documents',[])]})
+  except (URLError,ValueError,KeyError):h.reply(502,{'error':'지도 검색에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.'})
+  return True
  if h.path!='/api/meals':return False
  with db() as c:
-  rows=c.execute('SELECT meals.*,users.name AS author FROM meals JOIN users ON users.id=meals.user_id ORDER BY event_time DESC LIMIT 100').fetchall()
+  rows=c.execute("SELECT meals.*,users.name AS author,COALESCE(meal_places.address,'') AS address,COALESCE(meal_places.url,'') AS url FROM meals JOIN users ON users.id=meals.user_id LEFT JOIN meal_places ON meals.id=meal_places.meal_id ORDER BY event_time DESC LIMIT 100").fetchall()
   restaurants=[r[0] for r in c.execute('SELECT DISTINCT restaurant FROM meals ORDER BY restaurant LIMIT 500')]
  h.reply(200,{'meals':[{**dict(r),'members':json.loads(r['members'])} for r in rows],'restaurants':restaurants});return True
 
@@ -22,7 +37,14 @@ def post(h,u,d,db):
    datetime.strptime(when,'%Y-%m-%dT%H:%M')
   except ValueError:
    h.reply(400,{'error':'식사 날짜와 시간을 선택해 주세요.'});return True
-  with db() as c:c.execute('INSERT INTO meals(user_id,restaurant,event_time,capacity,members) VALUES(?,?,?,?,?)',(u['id'],restaurant.strip(),when,capacity,json.dumps([u['id']])))
+  address=d.get('address','');url=d.get('url','')
+  if not isinstance(address,str) or len(address)>300 or not isinstance(url,str) or len(url)>500 or (url and (urlsplit(url).scheme not in ['http','https'] or urlsplit(url).netloc!='place.map.kakao.com')):
+   h.reply(400,{'error':'식당 위치 정보를 확인해 주세요.'});return True
+  with db() as c:
+   c.execute('BEGIN IMMEDIATE')
+   c.execute('INSERT INTO meals(user_id,restaurant,event_time,capacity,members) VALUES(?,?,?,?,?)',(u['id'],restaurant.strip(),when,capacity,json.dumps([u['id']])))
+   mid=c.execute('SELECT id FROM meals WHERE user_id=? ORDER BY id DESC LIMIT 1',(u['id'],)).fetchone()[0]
+   c.execute('INSERT INTO meal_places(meal_id,address,url) VALUES(?,?,?)',(mid,address,url))
   h.reply(201,{'ok':True});return True
  if h.path=='/api/meals/join':
   mid=d.get('id')
