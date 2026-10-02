@@ -30,7 +30,8 @@ function calendarMarkup(){
  return `<div class="calendar-heading"><h2>달력 <span>${calendarYear}년 ${calendarMonth+1}월</span></h2><div class="calendar-controls"><button type="button" data-calendar="-1" aria-label="이전 달">이전 달</button><button type="button" data-calendar="today">오늘</button><button type="button" data-calendar="1" aria-label="다음 달">다음 달</button></div></div><div class="calendar-week" aria-hidden="true">${['일','월','화','수','목','금','토'].map(d=>`<span>${d}</span>`).join('')}</div><div class="calendar-grid" aria-label="${calendarYear}년 ${calendarMonth+1}월 달력">${cells}</div>`;
 }
 document.addEventListener('click',e=>{const button=e.target.closest('[data-calendar]');if(!button)return;if(button.dataset.calendar==='today'){calendarYear=calendarParts[0];calendarMonth=calendarParts[1]-1}else{const date=new Date(calendarYear,calendarMonth+Number(button.dataset.calendar),1);calendarYear=date.getFullYear();calendarMonth=date.getMonth()}document.querySelector('#dashboard-calendar').innerHTML=calendarMarkup();});
-function taskRows(){return state.tasks.map((t,i)=>`<label class="row"><input type="checkbox" data-task="${i}" ${t[1]?'checked':''}><span>${esc(t[0])}</span><small>+5 XP</small></label>`).join('')}
+function taskRows(){return state.tasks.map((t,i)=>`<div class="task-row"><label class="task-check"><input type="checkbox" data-task="${i}" ${t[1]?'checked':''}><span>${esc(t[0])}</span></label><small>+5 XP</small><button type="button" class="task-delete" data-delete-task="${i}" aria-label="${esc(t[0])} 삭제">삭제</button></div>`).join('')}
+
 function panel(title,body){return `<section class="panel"><h2>${title}</h2>${body}</section>`}
 function render(){renderOriginal();paintActivity();}
 function renderOriginal(){clearTimeout(timer);stage='idle';let route=location.hash.slice(1);if(!(route in titles))route='';select.value=route;[...main.children].forEach(x=>{if(![header,note,select].includes(x))x.remove()});document.querySelectorAll('aside nav a').forEach(a=>{const active=a.hash==='#'+route||(!route&&!a.hash);a.classList.toggle('bg-primary-500',active);a.classList.toggle('text-background-50',active);a.parentElement.classList.toggle('nav-active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
@@ -66,10 +67,10 @@ function wireProgress(content){
  }
 }
 function updateProgressAttendance(content){const button=content?.querySelector('[data-progress="attendance"]');if(button)button.textContent=attendance?attendance.streak+'일 연속 출석':'출석 기록 확인 중';}
-const favoriteSection=document.createElement('section');favoriteSection.className='favorite-section';document.querySelector('aside nav').before(favoriteSection);
+const favoriteSection=document.createElement('details');favoriteSection.open=true;favoriteSection.className='favorite-section';document.querySelector('aside nav').before(favoriteSection);
 function refreshFavorites(){
  const favorites=state.favorites||[];
- favoriteSection.innerHTML='<h2>즐겨찾기</h2>'+(favorites.length?favorites.map(k=>`<a href="#${k}" class="favorite-item">${esc(titles[k])}</a>`).join(''):'<p>메뉴 옆 별을 눌러 추가하세요.</p>');
+ favoriteSection.innerHTML='<summary>즐겨찾기</summary>'+(favorites.length?favorites.map(k=>`<a href="#${k}" class="favorite-item">${esc(titles[k])}</a>`).join(''):'<p>메뉴 옆 별을 눌러 추가하세요.</p>');
  document.querySelectorAll('aside nav a').forEach(a=>{const menu=a.hash.slice(1);let button=a.parentElement.classList.contains('nav-favorite-row')?a.parentElement.querySelector('button'):null;if(!button){const row=document.createElement('div');row.className='nav-favorite-row';a.before(row);row.append(a);button=document.createElement('button');button.type='button';button.className='favorite-toggle';button.dataset.favorite=menu;row.append(button)}const on=favorites.includes(menu);button.textContent=on?'★':'☆';a.parentElement.classList.toggle('nav-active',a.hash==='#'+location.hash.slice(1)||(!location.hash.slice(1)&&!a.hash));button.setAttribute('aria-pressed',String(on));button.setAttribute('aria-label',titles[menu]+(on?' 즐겨찾기 해제':' 즐겨찾기 추가'));});
 }
 refreshFavorites();
@@ -107,3 +108,5 @@ function organizeSidebar(){
  }
 }
 organizeSidebar();
+
+document.addEventListener('click',e=>{const button=e.target.closest('[data-delete-task]');if(!button)return;const index=Number(button.dataset.deleteTask);if(!Number.isInteger(index)||!state.tasks[index])return;state.tasks.splice(index,1);save();render();});
