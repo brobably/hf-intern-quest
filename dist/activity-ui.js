@@ -31,7 +31,7 @@ function paintActivity(){
  }
  for(const span of content.querySelectorAll('a span'))if(/^\+\d+ XP/.test(span.textContent.trim()))span.textContent='메뉴 바로가기';
  for(const span of content.querySelectorAll('a span'))if(span.textContent.trim()==='최고 기록 시 보너스')span.textContent='이번 주 기록 경쟁';
- let announcements=content.querySelector('#dashboard-announcements');if(!announcements){announcements=document.createElement('section');announcements.id='dashboard-announcements';announcements.className='panel';hero.after(announcements);}announcements.innerHTML='<h2>전체 공지</h2>'+announcementRows(false);
+ content.querySelector('#dashboard-announcements')?.remove();
  const calendar=content.querySelector('#dashboard-calendar');if(calendar)calendar.innerHTML=calendarMarkup();
 }
 function activityProgress(type){
