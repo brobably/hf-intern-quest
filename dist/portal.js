@@ -1,7 +1,7 @@
 const main=document.querySelector('main'),header=main.querySelector('header');
 const signedName=window.hfAuth.user.name;
 const dashboard=[...main.children].filter(x=>x!==header).map(x=>x.outerHTML).join('').replaceAll('김하늘 인턴님',signedName.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))+' 인턴님');
-const titles={'':'대시보드','manual-ai':'업무 매뉴얼 AI',glossary:'HF 금융상품 용어사전','registry-guide':'등기부등본 확인 방법',checklist:'업무 체크리스트',cleaning:'금주 청소 담당자',lunch:'같이 밥 먹을래?',reflex:'순발력 대결',wiki:'인턴 위키',study:'같이 공부할래?',articles:'오늘의 기사',jobs:'오늘의 채용 소식',qna:'1대1 Q&A',suggestions:'건의사항'};
+const titles={'':'대시보드','manual-ai':'업무 매뉴얼 AI',glossary:'HF 금융상품 용어사전','registry-guide':'등기부등본 확인 방법',checklist:'업무 체크리스트',cleaning:'금주 청소 담당자',lunch:'같이 밥 먹을래?',reflex:'순발력 대결',wiki:'인턴 위키',study:'같이 공부할래?',articles:'오늘의 기사',jobs:'오늘의 채용 소식',qna:'Q&A',suggestions:'건의사항'};
 const boardKinds=['study','articles','jobs','qna','suggestions'];
 const nav=document.querySelector('aside nav');
 const navModel=nav.querySelector('a');
@@ -94,3 +94,16 @@ function showProgress(type){
 }
 
 const logoIcon=document.querySelector('aside > a svg');if(logoIcon)logoIcon.innerHTML='<path d="M3 4h7a3 3 0 0 1 2 1 3 3 0 0 1 2-1h7v16h-7a3 3 0 0 0-2 1 3 3 0 0 0-2-1H3zM12 5v16"/>';document.querySelector('aside > .mt-auto')?.remove();loadActivity();
+
+function organizeSidebar(){
+ const menu=document.querySelector('aside nav');
+ const groups=[['업무용',['manual-ai','glossary','registry-guide','checklist','cleaning','wiki']],['그 외',['lunch','study','articles','jobs','reflex']],['기타',['qna','suggestions']]];
+ for(const [name,keys] of groups){
+  const group=document.createElement('details');group.className='sidebar-group';group.open=true;
+  const heading=document.createElement('summary');heading.textContent=name;group.append(heading);
+  const items=document.createElement('div');items.className='sidebar-group-items';group.append(items);
+  for(const key of keys){const link=[...menu.querySelectorAll('a')].find(a=>a.hash==='#'+key);if(link)items.append(link.closest('.nav-favorite-row')||link);}
+  menu.append(group);
+ }
+}
+organizeSidebar();
