@@ -32,3 +32,4 @@ main header{flex-wrap:wrap}main header>div:first-child{max-width:none;flex:1 1 4
 #announcement-alert .announcement-item { margin: 16px 0; padding: 16px; background: #f0f8f4; border-radius: 10px; overflow-wrap: anywhere; }
 #announcement-alert .announcement-confirm { display: block; width: 100%; margin-top: 20px; padding: 12px; }
 
+.notice-check { display: flex; align-items: center; gap: 8px; margin-top: 12px; color: #007b59; font-weight: 600; cursor: pointer; } .notice-check input { width: 18px; height: 18px; accent-color: #008a65; }
