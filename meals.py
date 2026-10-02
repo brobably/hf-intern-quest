@@ -33,6 +33,15 @@ def get(h,u,db):
 
 def post(h,u,d,db):
  if not h.path.startswith('/api/meals/'):return False
+ if h.path=='/api/meals/remove':
+  mid=d.get('id')
+  if type(mid)!=int:h.reply(400,{'error':'식사 제안을 확인해 주세요.'});return True
+  with db() as c:
+   c.execute('BEGIN IMMEDIATE');meal=c.execute('SELECT user_id FROM meals WHERE id=?',(mid,)).fetchone()
+   if not meal:h.reply(404,{'error':'식사 제안이 없습니다.'});return True
+   if meal['user_id']!=u['id']:h.reply(403,{'error':'본인이 만든 식사 제안만 삭제할 수 있습니다.'});return True
+   c.execute('DELETE FROM meal_invites WHERE meal_id=?',(mid,));c.execute('DELETE FROM meal_places WHERE meal_id=?',(mid,));c.execute('DELETE FROM meals WHERE id=?',(mid,))
+  h.reply(200,{'ok':True});return True
  if h.path=='/api/meals/invite':
   mid=d.get('id');recipients=d.get('recipients')
   if type(mid)!=int or not isinstance(recipients,list) or not 1<=len(recipients)<=30 or any(type(x)!=int for x in recipients):h.reply(400,{'error':'초대할 회원을 선택해 주세요.'});return True
