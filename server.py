@@ -19,6 +19,7 @@ def db():
 with db() as c:
  c.executescript('''CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,employee TEXT UNIQUE NOT NULL,name TEXT NOT NULL,salt TEXT NOT NULL,hash TEXT NOT NULL,status TEXT NOT NULL,role TEXT NOT NULL DEFAULT 'intern',state TEXT NOT NULL DEFAULT '{}');CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL,expires INTEGER NOT NULL);''')
  c.execute('CREATE TABLE IF NOT EXISTS attendance(user_id INTEGER NOT NULL,day TEXT NOT NULL,PRIMARY KEY(user_id,day))')
+ c.execute("CREATE TABLE IF NOT EXISTS posts(id INTEGER PRIMARY KEY,kind TEXT NOT NULL,user_id INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,link TEXT NOT NULL DEFAULT '',event_day TEXT NOT NULL DEFAULT '',created TEXT NOT NULL,members TEXT NOT NULL DEFAULT '[]',replies TEXT NOT NULL DEFAULT '[]')")
  # Admin bootstrap is a private runtime secret, never a committed database.
  seed=os.environ.get('HF_ADMIN_SEED')
  if seed and not c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0]:
@@ -58,6 +59,13 @@ class Handler(SimpleHTTPRequestHandler):
    return self.reply(200,{'user':public(u) if u else None,'setup':setup})
   u=self.user()
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
+  if self.path.startswith('/api/boards/'):
+   kind=self.path.split('/')[-1]
+   if kind not in ['study','articles','jobs','qna','suggestions']:return self.reply(404,{'error':'게시판이 없습니다.'})
+   sql='SELECT posts.*,users.name AS author FROM posts JOIN users ON users.id=posts.user_id WHERE kind=?';params=[kind]
+   if kind=='qna' and u['role']!='admin':sql+=' AND user_id=?';params.append(u['id'])
+   with db() as c:rows=c.execute(sql+' ORDER BY posts.id DESC LIMIT 100',params).fetchall()
+   return self.reply(200,{'posts':[{**dict(x),'members':json.loads(x['members']),'replies':json.loads(x['replies'])} for x in rows]})
   if self.path=='/api/state':return self.reply(200,{'state':json.loads(u['state'])})
   if self.path=='/api/attendance':return self.reply(200,attendance_info(u['id']))
   if self.path=='/api/admin/users' and u['role']=='admin':
@@ -105,6 +113,37 @@ class Handler(SimpleHTTPRequestHandler):
    return self.reply(200,{'user':public(u)},f'hf_session={raw}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800'+('; Secure' if SECURE else ''))
   u=self.user()
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
+  if path=='/api/boards/post':
+   kind=d.get('kind');title=d.get('title');body=d.get('body');link=d.get('link','');day=d.get('event_day','')
+   if kind not in ['study','articles','jobs','qna','suggestions'] or not isinstance(title,str) or not 1<=len(title.strip())<=120 or not isinstance(body,str) or not 1<=len(body.strip())<=5000:return self.reply(400,{'error':'제목과 내용을 확인해 주세요.'})
+   if kind in ['articles','jobs'] and u['role']!='admin':return self.reply(403,{'error':'기사와 채용 소식은 관리자가 등록합니다.'})
+   if not isinstance(link,str) or len(link)>1000 or (link and not re.fullmatch(r'https?://[^\s]+',link)) or not isinstance(day,str) or (day and not re.fullmatch(r'\d{4}-\d{2}-\d{2}',day)):return self.reply(400,{'error':'주소와 날짜를 확인해 주세요.'})
+   if kind=='study':
+    try:datetime.strptime(day,'%Y-%m-%d')
+    except ValueError:return self.reply(400,{'error':'모임 날짜를 선택해 주세요.'})
+   with db() as c:c.execute('INSERT INTO posts(kind,user_id,title,body,link,event_day,created,members) VALUES(?,?,?,?,?,?,?,?)',(kind,u['id'],title.strip(),body.strip(),link,day,datetime.now(timezone(timedelta(hours=9))).isoformat(),json.dumps([u['id']] if kind=='study' else [])))
+   return self.reply(201,{'ok':True})
+  if path in ['/api/boards/reply','/api/boards/join']:
+   pid=d.get('id')
+   if not isinstance(pid,int):return self.reply(400,{'error':'게시글을 확인해 주세요.'})
+   with db() as c:
+    c.execute('BEGIN IMMEDIATE')
+    post=c.execute('SELECT * FROM posts WHERE id=?',(pid,)).fetchone()
+    if not post or (post['kind']=='qna' and u['role']!='admin' and post['user_id']!=u['id']):return self.reply(404,{'error':'게시글을 찾을 수 없습니다.'})
+    if path.endswith('/join'):
+     if post['kind']!='study':return self.reply(400,{'error':'공부 모임에서만 참여할 수 있습니다.'})
+     members=json.loads(post['members'])
+     if post['user_id']==u['id']:return self.reply(400,{'error':'모임 작성자는 기본으로 참여합니다.'})
+     members.remove(u['id']) if u['id'] in members else members.append(u['id'])
+     c.execute('UPDATE posts SET members=? WHERE id=?',(json.dumps(members),pid))
+    else:
+     body=d.get('body')
+     if not isinstance(body,str) or not 1<=len(body.strip())<=2000:return self.reply(400,{'error':'답변 내용을 입력해 주세요.'})
+     replies=json.loads(post['replies'])
+     if len(replies)>=100:return self.reply(400,{'error':'댓글은 게시글당 100개까지 등록할 수 있습니다.'})
+     replies.append({'name':u['name'],'user_id':u['id'],'admin':u['role']=='admin','body':body.strip(),'created':datetime.now(timezone(timedelta(hours=9))).isoformat()})
+     c.execute('UPDATE posts SET replies=? WHERE id=?',(json.dumps(replies,ensure_ascii=False),pid))
+   return self.reply(200,{'ok':True})
   if path=='/api/attendance':
    day=datetime.now(timezone(timedelta(hours=9))).date().isoformat()
    with db() as c:c.execute('INSERT OR IGNORE INTO attendance(user_id,day) VALUES(?,?)',(u['id'],day))
@@ -116,7 +155,7 @@ class Handler(SimpleHTTPRequestHandler):
    s=d.get('state');allowed={'tasks','clean','lunch','wiki','best','favorites'}
    if not isinstance(s,dict) or set(s)-allowed:return self.reply(400,{'error':'저장 내용을 확인해 주세요.'})
    if any(not isinstance(s.get(k,[]),list) for k in ['tasks','clean','lunch','wiki']):return self.reply(400,{'error':'저장 형식이 올바르지 않습니다.'})
-   if 'favorites' in s and (not isinstance(s['favorites'],list) or len(s['favorites'])>9 or any(x not in ['','manual-ai','glossary','registry-guide','checklist','cleaning','lunch','reflex','wiki'] for x in s['favorites'])):return self.reply(400,{'error':'즐겨찾기 목록을 확인해 주세요.'})
+   if 'favorites' in s and (not isinstance(s['favorites'],list) or len(s['favorites'])>14 or any(x not in ['','manual-ai','glossary','registry-guide','checklist','cleaning','lunch','reflex','wiki','study','articles','jobs','qna','suggestions'] for x in s['favorites'])):return self.reply(400,{'error':'즐겨찾기 목록을 확인해 주세요.'})
    with db() as c:c.execute('UPDATE users SET state=? WHERE id=?',(json.dumps(s,ensure_ascii=False),u['id']))
    return self.reply(200,{'ok':True})
   if path=='/api/admin/review':

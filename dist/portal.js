@@ -1,7 +1,11 @@
 const main=document.querySelector('main'),header=main.querySelector('header');
 const signedName=window.hfAuth.user.name;
 const dashboard=[...main.children].filter(x=>x!==header).map(x=>x.outerHTML).join('').replaceAll('김하늘 인턴님',signedName.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))+' 인턴님');
-const titles={'':'대시보드','manual-ai':'업무 매뉴얼 AI',glossary:'HF 금융상품 용어사전','registry-guide':'등기부등본 확인 방법',checklist:'업무 체크리스트',cleaning:'금주 청소 담당자',lunch:'같이 밥 먹을래?',reflex:'순발력 대결',wiki:'인턴 위키'};
+const titles={'':'대시보드','manual-ai':'업무 매뉴얼 AI',glossary:'HF 금융상품 용어사전','registry-guide':'등기부등본 확인 방법',checklist:'업무 체크리스트',cleaning:'금주 청소 담당자',lunch:'같이 밥 먹을래?',reflex:'순발력 대결',wiki:'인턴 위키',study:'같이 공부할래?',articles:'오늘의 기사',jobs:'오늘의 채용 소식',qna:'1대1 Q&A',suggestions:'건의사항'};
+const boardKinds=['study','articles','jobs','qna','suggestions'];
+const nav=document.querySelector('aside nav');
+const navModel=nav.querySelector('a');
+for(const kind of boardKinds){const a=document.createElement('a');a.href='#'+kind;a.className=navModel.className.replace('bg-primary-500','').replace('text-background-50','');a.innerHTML='<span class="board-icon" aria-hidden="true">'+({study:'◎',articles:'▤',jobs:'▣',qna:'?',suggestions:'◇'}[kind])+'</span><span>'+titles[kind]+'</span>';nav.append(a);}
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const defaults={tasks:[['오전 9시 MBS 발행 현황 메일 확인',true,5],['유동화증권 발행공시 자료 취합 (DART)',true,15],['담보주택 등기부등본 3건 확인',false,30],['용어사전에서 신탁원본 학습하기',false,10],['주간 회의록 초안 작성',false,20]],clean:[false,true,false],lunch:[],wiki:[],best:null,favorites:[]};
 let state={...structuredClone(defaults),...window.hfAuth.state};
@@ -32,6 +36,7 @@ function render(){clearTimeout(timer);stage='idle';let route=location.hash.slice
 const content=document.createElement('div');content.id='content';main.append(content);
 if(!route){content.innerHTML=dashboard;wireProgress(content);const calendar=document.createElement('section');calendar.id='dashboard-calendar';calendar.className='dashboard-calendar';calendar.innerHTML=calendarMarkup();content.firstElementChild.after(calendar);const attendanceCard=document.createElement('section');attendanceCard.id='attendance-card';attendanceCard.className='attendance-card';attendanceCard.innerHTML=attendanceMarkup();calendar.before(attendanceCard);updateProgressAttendance(content);const sections=[...content.querySelectorAll('section')];const quest=sections.find(x=>x.textContent.includes('오늘의 퀘스트'));if(quest)quest.innerHTML=`<h2 class="font-heading text-xl mb-3">오늘의 퀘스트 <small>${state.tasks.filter(t=>t[1]).length}/${state.tasks.length} 완료</small></h2>${taskRows()}`;return}
 content.innerHTML=`<h1 class="view-title">${titles[route]}</h1><p class="muted" style="margin-bottom:24px">HF 인턴 퀘스트</p>`;
+if(boardKinds.includes(route)){renderBoard(route,content);return;}
 if(route==='checklist')content.innerHTML+=panel('오늘 해야 할 일',`<form id="task-form" class="toolbar"><input class="field" name="task" maxlength="150" placeholder="새 업무를 입력하세요" aria-label="새 업무" required><button class="primary">업무 추가</button></form>${taskRows()}`);
 if(route==='manual-ai')content.innerHTML+=panel('매뉴얼에 물어보기','<p>업무 매뉴얼과 AI 연결을 준비 중입니다. 연결 후에는 확인된 매뉴얼을 바탕으로 답변과 근거를 제공합니다.</p><div id="messages" aria-live="polite"></div><form id="ai-form" class="toolbar"><input class="field" name="question" maxlength="500" placeholder="예: 발행 현황 자료는 어디에서 확인하나요?" aria-label="매뉴얼 질문" required><button class="primary">질문 입력</button></form><p class="muted">현재는 질문 입력 화면을 확인할 수 있습니다. 실제 AI 답변은 생성하지 않습니다.</p>');
 if(route==='glossary'){content.innerHTML+=panel('찾아볼 용어','<input id="term-search" class="field" placeholder="MBS, 보금자리론, 주택연금, 신탁원본" aria-label="용어 검색"><div id="terms" class="cards" style="margin-top:18px"></div><p class="muted">용어 설명은 검토된 자료를 연결한 뒤 채워집니다.</p>');showTerms('')}
@@ -64,7 +69,7 @@ const favoriteSection=document.createElement('section');favoriteSection.classNam
 function refreshFavorites(){
  const favorites=state.favorites||[];
  favoriteSection.innerHTML='<h2>즐겨찾기</h2>'+(favorites.length?favorites.map(k=>`<a href="#${k}" class="favorite-item">${esc(titles[k])}</a>`).join(''):'<p>메뉴 옆 별을 눌러 추가하세요.</p>');
- document.querySelectorAll('aside nav a').forEach(a=>{const menu=a.hash.slice(1);let button=a.parentElement.querySelector('button');if(!button){const row=document.createElement('div');row.className='nav-favorite-row';a.before(row);row.append(a);button=document.createElement('button');button.type='button';button.className='favorite-toggle';button.dataset.favorite=menu;row.append(button)}const on=favorites.includes(menu);button.textContent=on?'★':'☆';button.setAttribute('aria-pressed',String(on));button.setAttribute('aria-label',titles[menu]+(on?' 즐겨찾기 해제':' 즐겨찾기 추가'));});
+ document.querySelectorAll('aside nav a').forEach(a=>{const menu=a.hash.slice(1);let button=a.parentElement.classList.contains('nav-favorite-row')?a.parentElement.querySelector('button'):null;if(!button){const row=document.createElement('div');row.className='nav-favorite-row';a.before(row);row.append(a);button=document.createElement('button');button.type='button';button.className='favorite-toggle';button.dataset.favorite=menu;row.append(button)}const on=favorites.includes(menu);button.textContent=on?'★':'☆';button.setAttribute('aria-pressed',String(on));button.setAttribute('aria-label',titles[menu]+(on?' 즐겨찾기 해제':' 즐겨찾기 추가'));});
 }
 refreshFavorites();
 document.addEventListener('click',e=>{

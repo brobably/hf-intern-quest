@@ -1,0 +1,29 @@
+/* Shared boards; authorization is enforced by the server. */
+async function boardRequest(path,data){
+ const response=await fetch('/api/boards/'+path,{credentials:'same-origin',...(data?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}:{})});
+ const result=await response.json();if(!response.ok)throw Error(result.error||'요청에 실패했습니다.');return result;
+}
+async function renderBoard(kind,content){
+ const admin=window.hfAuth.user.role==='admin',news=['articles','jobs'].includes(kind);
+ const intro={study:'공부할 주제와 시간, 장소를 적고 함께할 인턴을 찾아보세요.',articles:'관리자가 고른 기사와 원문 링크를 모아 봅니다.',jobs:'관리자가 등록한 채용 공고입니다. 지원 조건과 마감일은 원문에서 확인하세요.',qna:admin?'인턴들의 비공개 질문에 답변해 주세요.':'질문은 작성자와 관리자만 볼 수 있습니다.',suggestions:'포털 개선 아이디어와 인턴 생활에 대한 의견을 함께 나눠요.'}[kind];
+ content.innerHTML+=panel(titles[kind],`<p>${intro}</p><p class="muted">${calendarToday} · ${news?'직접 등록한 소식 · 자동 수집은 아직 연결되지 않았습니다.':'승인된 인턴들이 사용하는 게시판입니다.'}</p>`);
+ if(!news||admin)content.innerHTML+=panel(news?'소식 등록':kind==='study'?'공부 모임 만들기':kind==='qna'?'질문하기':'건의사항 작성',`<form id="board-form" data-kind="${kind}" class="board-form"><label>제목<input class="field" name="title" maxlength="120" required placeholder="${kind==='study'?'예: 퇴근 후 NCS 같이 공부해요':'제목을 입력하세요'}"></label>${kind==='study'?'<label>모임 날짜<input type="date" class="field" name="event_day" required></label>':''}<label>${kind==='study'?'공부 주제 · 시간 · 장소':'내용'}<textarea class="field" name="body" maxlength="5000" required rows="4" placeholder="내용을 입력하세요"></textarea></label>${news?'<label>원문 주소<input type="url" class="field" name="link" required placeholder="https://..."></label>':''}<button class="primary">${news?'소식 등록':'등록하기'}</button><p class="board-status" role="status"></p></form>`);
+ const list=document.createElement('div');list.className='board-list';list.innerHTML='<p role="status">게시글을 불러오는 중…</p>';content.append(list);
+ try{const {posts}=await boardRequest(kind);if(!content.isConnected)return;
+ list.innerHTML=posts.length?posts.map(p=>{
+  const today=p.created.slice(0,10)===calendarToday;const own=p.user_id===window.hfAuth.user.id;const joined=p.members.includes(window.hfAuth.user.id);
+  const answered=p.replies.some(r=>r.admin);
+  return panel(`${esc(p.title)} ${today?'<small class="board-tag">오늘</small>':''}`,`<p class="muted">${esc(p.author)} · ${esc(p.created.slice(0,10))}${kind==='qna'?' · '+(answered?'답변 완료':'답변 대기'):''}</p>${kind==='study'?`<p class="board-meta">모임 날짜 ${esc(p.event_day)} · ${p.members.length}명 참여</p>`:''}<p class="board-body">${esc(p.body)}</p>${p.link?`<a class="board-source" href="${esc(p.link)}" target="_blank" rel="noopener noreferrer">${kind==='jobs'?'채용 공고 원문 보기':'기사 원문 보기'} ↗</a>`:''}${kind==='study'?`<button type="button" class="primary board-join" data-id="${p.id}" ${own?'disabled':''}>${own?'내가 만든 모임':joined?'참여 취소':'함께 공부하기'}</button>`:''}${p.replies.map(r=>`<div class="board-reply"><strong>${esc(r.name)}${r.admin?' · 관리자':''}</strong><small> ${esc(r.created.slice(0,10))}</small><p class="board-body">${esc(r.body)}</p></div>`).join('')}<form class="board-reply-form toolbar" data-id="${p.id}"><input name="body" class="field" aria-label="${kind==='qna'?'답변 또는 추가 질문':'댓글'}" placeholder="${kind==='qna'?'답변 또는 추가 질문을 입력하세요':'댓글을 입력하세요'}" maxlength="2000" required><button class="primary">${kind==='qna'?'답변 등록':'댓글 등록'}</button><p class="board-status" role="status"></p></form>`);
+ }).join(''):panel('아직 등록된 글이 없어요',`<p>${news?'관리자가 소식을 등록하면 이곳에 표시됩니다.':'첫 글을 남겨 주세요.'}</p>`);
+ }catch(e){list.innerHTML=panel('불러오지 못했어요',`<p role="alert">${esc(e.message)}</p><button type="button" class="primary" id="board-retry">다시 시도</button>`);list.querySelector('button').onclick=()=>render();}
+}
+document.addEventListener('submit',async e=>{
+ const form=e.target;if(form.id!=='board-form'&&!form.classList.contains('board-reply-form'))return;
+ e.preventDefault();const button=form.querySelector('button'),status=form.querySelector('.board-status');button.disabled=true;status.textContent='저장 중…';
+ try{const data=Object.fromEntries(new FormData(form));if(form.id==='board-form')await boardRequest('post',{...data,kind:form.dataset.kind});else await boardRequest('reply',{id:Number(form.dataset.id),body:data.body});render();}
+ catch(error){status.textContent=error.message;button.disabled=false;}
+});
+document.addEventListener('click',async e=>{
+ const button=e.target.closest('.board-join');if(!button)return;button.disabled=true;
+ try{await boardRequest('join',{id:Number(button.dataset.id)});render();}catch(error){button.disabled=false;const p=document.createElement('p');p.setAttribute('role','alert');p.textContent=error.message;button.after(p);}
+});
