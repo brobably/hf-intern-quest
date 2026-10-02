@@ -26,7 +26,8 @@ function paintActivity(){
   const heading=section.querySelector('h2');if(!heading)continue;const title=heading.textContent.trim();
   if(title==='이번 달 랭킹')section.innerHTML='<h2>이번 달 랭킹</h2>'+ (a?`<p class="muted">${a.month} · 15초마다 갱신</p>`+memberRows(a.ranking,'xp'):'기록 확인 중…');
   if(title==='금주 청소 당번')section.innerHTML='<h2>금주 청소 당번</h2>'+cleaningMarkup();
-  if(title==='순발력 대결'){const mine=a?.reflex.find(r=>r.id===window.hfAuth.user.id);section.innerHTML='<h2>순발력 대결</h2>'+`<p>내 이번 주 최고 기록: ${mine?mine.ms+' ms':'아직 기록 없음'}</p>`+(a?memberRows(a.reflex,'reflex'):'기록 확인 중…')+'<a href="#reflex" class="primary">도전하기</a>';}
+  if(title==='순발력 대결'){const mine=a?.reflex.find(r=>r.id===window.hfAuth.user.id);section.classList.add('dashboard-reflex-card');section.innerHTML='<h2>순발력 대결</h2>'+
+`<p>내 이번 주 최고 기록: ${mine?mine.ms+' ms':'아직 기록 없음'}</p>`+(a?memberRows(a.reflex,'reflex'):'기록 확인 중…')+'<div class="reflex-card-actions"><a href="#reflex" class="primary reflex-card-button">도전하기</a></div>';}
  }
  for(const span of content.querySelectorAll('a span'))if(/^\+\d+ XP/.test(span.textContent.trim()))span.textContent='메뉴 바로가기';
  for(const span of content.querySelectorAll('a span'))if(span.textContent.trim()==='최고 기록 시 보너스')span.textContent='이번 주 기록 경쟁';

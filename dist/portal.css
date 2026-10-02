@@ -16,3 +16,5 @@ main header{flex-wrap:wrap}main header>div:first-child{max-width:none;flex:1 1 4
 .approval-badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;border-radius:20px;background:#d43838;color:white;font-size:12px;font-weight:700;margin-left:5px}.auth-link.has-pending{font-weight:700}#approval-notification{background:#fff3dc;color:#76511b;border:1px solid #e8cf96;border-radius:8px;padding:12px 16px;margin:14px 0;font-size:14px}#approval-notification[hidden]{display:none}
 
 #approval-notification{flex-basis:100%;margin:0}
+
+.dashboard-reflex-card h2{font-size:18px;font-weight:700;margin:0 0 12px}.dashboard-reflex-card>p{margin:0 0 16px;line-height:1.6}.dashboard-reflex-card .row{padding:14px 16px;gap:12px;margin-bottom:8px;min-width:0}.dashboard-reflex-card .row>span{min-width:0;overflow-wrap:anywhere}.dashboard-reflex-card .row>small{flex-shrink:0}.reflex-card-actions{display:flex;margin-top:18px}.reflex-card-button{display:flex;width:100%;align-items:center;justify-content:center;min-height:44px;padding:12px 18px;text-decoration:none;box-sizing:border-box}.my-ranking{padding-left:16px;padding-right:16px}
