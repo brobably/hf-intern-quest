@@ -5,10 +5,14 @@ def today():return datetime.now(ZONE).date().isoformat()
 def week():
  d=datetime.now(ZONE).date();return (d-timedelta(days=d.weekday())).isoformat()
 def initialize(c):
+ c.execute('CREATE TABLE IF NOT EXISTS reflex_comments(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,body TEXT NOT NULL,created TEXT NOT NULL)')
  c.executescript('''CREATE TABLE IF NOT EXISTS points(user_id INTEGER NOT NULL,event_key TEXT NOT NULL,day TEXT NOT NULL,amount INTEGER NOT NULL,PRIMARY KEY(user_id,event_key));CREATE TABLE IF NOT EXISTS reflex_runs(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL,ready DOUBLE PRECISION NOT NULL,used INTEGER NOT NULL DEFAULT 0);CREATE TABLE IF NOT EXISTS reflex_scores(user_id INTEGER NOT NULL,week TEXT NOT NULL,ms INTEGER NOT NULL,PRIMARY KEY(user_id,week));CREATE TABLE IF NOT EXISTS cleaning_jobs(id INTEGER PRIMARY KEY,week TEXT NOT NULL,user_id INTEGER NOT NULL,area TEXT NOT NULL,done INTEGER NOT NULL DEFAULT 0,UNIQUE(week,user_id,area));''')
  c.executescript("CREATE TABLE IF NOT EXISTS announcements(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,created TEXT NOT NULL);CREATE TABLE IF NOT EXISTS calendar_events(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,day TEXT NOT NULL,body TEXT NOT NULL);")
 def award(c,uid,key,amount):c.execute('INSERT OR IGNORE INTO points(user_id,event_key,day,amount) VALUES(?,?,?,?)',(uid,key,today(),amount))
 def get(h,u,db):
+ if h.path=='/api/reflex/comments':
+  with db() as c:rows=c.execute('SELECT reflex_comments.*,users.name AS author FROM reflex_comments JOIN users ON users.id=reflex_comments.user_id ORDER BY reflex_comments.id DESC LIMIT 100').fetchall()
+  h.reply(200,{'comments':[dict(r) for r in rows]});return True
  if h.path!='/api/activity':return False
  month=today()[:7]
  with db() as c:
@@ -24,6 +28,20 @@ def get(h,u,db):
  h.reply(200,dict(xp=int(xp),month=month,ranking=ranking,reflex=reflex,cleaning=cleaning,members=members,week=week(),history=history,clean_done=clean_done,announcements=announcements,events=events));return True
 def post(h,u,d,db):
  path=h.path
+ if path=='/api/reflex/comments/post':
+  body=d.get('body')
+  if not isinstance(body,str) or not 1<=len(body.strip())<=1000:h.reply(400,{'error':'댓글은 1~1,000자로 작성해 주세요.'});return True
+  with db() as c:c.execute('INSERT INTO reflex_comments(user_id,body,created) VALUES(?,?,?)',(u['id'],body.strip(),datetime.now(ZONE).isoformat()))
+  h.reply(201,{'ok':True});return True
+ if path=='/api/reflex/comments/remove':
+  cid=d.get('id')
+  if type(cid)!=int:h.reply(400,{'error':'댓글을 확인해 주세요.'});return True
+  with db() as c:
+   c.execute('BEGIN IMMEDIATE');row=c.execute('SELECT user_id FROM reflex_comments WHERE id=?',(cid,)).fetchone()
+   if not row:h.reply(404,{'error':'댓글이 없습니다.'});return True
+   if row['user_id']!=u['id'] and u['role']!='admin':h.reply(403,{'error':'본인이 작성한 댓글만 삭제할 수 있습니다.'});return True
+   c.execute('DELETE FROM reflex_comments WHERE id=?',(cid,))
+  h.reply(200,{'ok':True});return True
  if path=='/api/announcements/post':
   if u['role']!='admin':h.reply(403,{'error':'관리자만 공지할 수 있습니다.'});return True
   title=d.get('title');body=d.get('body')
