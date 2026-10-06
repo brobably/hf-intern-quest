@@ -131,6 +131,14 @@ class Handler(SimpleHTTPRequestHandler):
   u=self.user()
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
   if activity.post(self,u,d,db):return
+  if path=='/api/admin/department':
+   if u['role']!='admin':return self.reply(403,{'error':'관리자만 부서를 변경할 수 있습니다.'})
+   uid=d.get('id');department=d.get('department')
+   if type(uid)!=int or not isinstance(department,str) or not 1<=len(department.strip())<=80:return self.reply(400,{'error':'회원과 부서를 확인해 주세요.'})
+   with db() as c:
+    if not c.execute('SELECT id FROM users WHERE id=?',(uid,)).fetchone():return self.reply(404,{'error':'회원이 없습니다.'})
+    c.execute('INSERT OR IGNORE INTO user_profiles(user_id) VALUES(?)',(uid,));c.execute('UPDATE user_profiles SET department=? WHERE user_id=?',(department.strip(),uid))
+   return self.reply(200,{'ok':True})
   if meals.post(self,u,d,db):return
   if wiki.post(self,u,d,db):return
   if path=='/api/boards/post':

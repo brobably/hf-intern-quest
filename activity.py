@@ -19,13 +19,17 @@ def get(h,u,db):
   xp=c.execute('SELECT COALESCE(SUM(amount),0) FROM points WHERE user_id=?',(u['id'],)).fetchone()[0]
   ranking=[dict(r) for r in c.execute("SELECT users.id,users.name,COALESCE(SUM(points.amount),0) AS xp FROM users LEFT JOIN points ON points.user_id=users.id AND points.day LIKE ? WHERE users.status='approved' GROUP BY users.id,users.name ORDER BY xp DESC,users.id",(month+'%',))]
   reflex=[dict(r) for r in c.execute('SELECT users.id,users.name,reflex_scores.ms FROM reflex_scores JOIN users ON users.id=reflex_scores.user_id WHERE week=? AND users.status=? ORDER BY ms,users.id',(week(),'approved'))]
-  cleaning=[dict(r) for r in c.execute('SELECT cleaning_jobs.*,users.name FROM cleaning_jobs JOIN users ON users.id=cleaning_jobs.user_id WHERE week=? ORDER BY cleaning_jobs.id',(week(),))]
-  members=[dict(r) for r in c.execute("SELECT id,name FROM users WHERE status='approved' ORDER BY name")]
+  profile=c.execute('SELECT department FROM user_profiles WHERE user_id=?',(u['id'],)).fetchone();department=profile[0] if profile else ''
+  members=[dict(r) for r in c.execute("SELECT users.id,name,COALESCE(department,'') AS department FROM users LEFT JOIN user_profiles ON users.id=user_profiles.user_id WHERE status='approved' ORDER BY name")]
+  cleaning=[dict(r) for r in c.execute("SELECT cleaning_jobs.*,users.name,COALESCE(department,'') AS department FROM cleaning_jobs JOIN users ON users.id=cleaning_jobs.user_id LEFT JOIN user_profiles ON users.id=user_profiles.user_id WHERE week=? ORDER BY cleaning_jobs.id",(week(),))]
+  if u['role']!='admin':
+   cleaning=[r for r in cleaning if department and r['department']==department]
+   members=[r for r in members if department and r['department']==department]
   history=[dict(r) for r in c.execute('SELECT event_key,day,amount FROM points WHERE user_id=? ORDER BY day DESC LIMIT 30',(u['id'],))]
   announcements=[dict(r) for r in c.execute('SELECT id,title,body,created FROM announcements ORDER BY id DESC LIMIT 20')]
   events=[dict(r) for r in c.execute('SELECT id,day,body FROM calendar_events WHERE user_id=? ORDER BY id',(u['id'],))]
   clean_done=c.execute("SELECT COUNT(*) FROM points WHERE user_id=? AND event_key LIKE 'clean:%'",(u['id'],)).fetchone()[0]
- h.reply(200,dict(xp=int(xp),month=month,ranking=ranking,reflex=reflex,cleaning=cleaning,members=members,week=week(),history=history,clean_done=clean_done,announcements=announcements,events=events));return True
+ h.reply(200,dict(xp=int(xp),month=month,ranking=ranking,reflex=reflex,cleaning=cleaning,members=members,department=department,week=week(),history=history,clean_done=clean_done,announcements=announcements,events=events));return True
 def post(h,u,d,db):
  path=h.path
  if path=='/api/reflex/comments/post':
@@ -86,6 +90,9 @@ def post(h,u,d,db):
   if type(uid)!=int or not isinstance(area,str) or not 1<=len(area.strip())<=80:h.reply(400,{'error':'담당자와 구역을 확인해 주세요.'});return True
   with db() as c:
    if not c.execute("SELECT id FROM users WHERE id=? AND status='approved'",(uid,)).fetchone():h.reply(400,{'error':'승인된 회원을 선택하세요.'});return True
+   target=c.execute('SELECT department FROM user_profiles WHERE user_id=?',(uid,)).fetchone()
+   if not target or not target[0]:h.reply(400,{'error':'담당자의 부서를 가입 승인 관리에서 먼저 설정해 주세요.'});return True
+   if d.get('department',target[0])!=target[0]:h.reply(400,{'error':'선택한 부서의 회원만 배정할 수 있습니다.'});return True
    c.execute('INSERT OR IGNORE INTO cleaning_jobs(week,user_id,area) VALUES(?,?,?)',(week(),uid,area.strip()))
   h.reply(201,{'ok':True});return True
  if path in ['/api/cleaning/complete','/api/cleaning/remove']:

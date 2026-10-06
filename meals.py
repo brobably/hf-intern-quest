@@ -5,6 +5,7 @@ from urllib.error import URLError
 from datetime import datetime
 
 def initialize(c):
+ c.execute('CREATE TABLE IF NOT EXISTS meal_days(meal_id INTEGER NOT NULL,user_id INTEGER NOT NULL,days TEXT NOT NULL,PRIMARY KEY(meal_id,user_id))')
  c.execute("CREATE TABLE IF NOT EXISTS meals(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,restaurant TEXT NOT NULL,event_time TEXT NOT NULL,capacity INTEGER NOT NULL,members TEXT NOT NULL)")
  c.execute("CREATE TABLE IF NOT EXISTS meal_places(meal_id INTEGER PRIMARY KEY,address TEXT NOT NULL,url TEXT NOT NULL)")
  c.execute("CREATE TABLE IF NOT EXISTS meal_invites(meal_id INTEGER NOT NULL,user_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'pending',PRIMARY KEY(meal_id,user_id))")
@@ -28,11 +29,26 @@ def get(h,u,db):
  with db() as c:
   rows=c.execute("SELECT meals.*,users.name AS author,COALESCE(meal_places.address,'') AS address,COALESCE(meal_places.url,'') AS url FROM meals JOIN users ON users.id=meals.user_id LEFT JOIN meal_places ON meals.id=meal_places.meal_id ORDER BY event_time DESC LIMIT 100").fetchall()
   restaurants=[r[0] for r in c.execute('SELECT DISTINCT restaurant FROM meals ORDER BY restaurant LIMIT 500')]
+  availability=[dict(r) for r in c.execute('SELECT meal_days.*,users.name FROM meal_days JOIN users ON users.id=meal_days.user_id')]
   members=c.execute("SELECT users.id,name,COALESCE(department,'') AS department FROM users LEFT JOIN user_profiles ON users.id=user_profiles.user_id WHERE status='approved' ORDER BY name").fetchall()
- h.reply(200,{'meals':[{**dict(r),'members':json.loads(r['members'])} for r in rows],'restaurants':restaurants,'users':[dict(r) for r in members]});return True
+ h.reply(200,{'meals':[{**dict(r),'members':json.loads(r['members'])} for r in rows],'restaurants':restaurants,'users':[dict(r) for r in members],'availability':[{**r,'days':json.loads(r['days'])} for r in availability]});return True
+
+def valid_days(days):return isinstance(days,list) and 1<=len(days)<=5 and all(type(x)==int and 0<=x<=4 for x in days)
+def save_days(c,mid,uid,days):
+ c.execute('INSERT OR IGNORE INTO meal_days(meal_id,user_id,days) VALUES(?,?,?)',(mid,uid,'[]'))
+ c.execute('UPDATE meal_days SET days=? WHERE meal_id=? AND user_id=?',(json.dumps(sorted(set(days))),mid,uid))
 
 def post(h,u,d,db):
  if not h.path.startswith('/api/meals/'):return False
+ if 'days' in d and not valid_days(d['days']):h.reply(400,{'error':'월~금 중 가능한 요일을 하나 이상 선택해 주세요.'});return True
+ if h.path=='/api/meals/availability':
+  mid=d.get('id')
+  if type(mid)!=int or not valid_days(d.get('days')):h.reply(400,{'error':'가능한 요일을 선택해 주세요.'});return True
+  with db() as c:
+   c.execute('BEGIN IMMEDIATE');meal=c.execute('SELECT members FROM meals WHERE id=?',(mid,)).fetchone()
+   if not meal or u['id'] not in json.loads(meal['members']):h.reply(403,{'error':'참여한 식사 제안에서만 요일을 설정할 수 있습니다.'});return True
+   save_days(c,mid,u['id'],d['days'])
+  h.reply(200,{'ok':True});return True
  if h.path=='/api/meals/remove':
   mid=d.get('id')
   if type(mid)!=int:h.reply(400,{'error':'식사 제안을 확인해 주세요.'});return True
@@ -40,7 +56,7 @@ def post(h,u,d,db):
    c.execute('BEGIN IMMEDIATE');meal=c.execute('SELECT user_id FROM meals WHERE id=?',(mid,)).fetchone()
    if not meal:h.reply(404,{'error':'식사 제안이 없습니다.'});return True
    if meal['user_id']!=u['id']:h.reply(403,{'error':'본인이 만든 식사 제안만 삭제할 수 있습니다.'});return True
-   c.execute('DELETE FROM meal_invites WHERE meal_id=?',(mid,));c.execute('DELETE FROM meal_places WHERE meal_id=?',(mid,));c.execute('DELETE FROM meals WHERE id=?',(mid,))
+   c.execute('DELETE FROM meal_days WHERE meal_id=?',(mid,));c.execute('DELETE FROM meal_invites WHERE meal_id=?',(mid,));c.execute('DELETE FROM meal_places WHERE meal_id=?',(mid,));c.execute('DELETE FROM meals WHERE id=?',(mid,))
   h.reply(200,{'ok':True});return True
  if h.path=='/api/meals/invite':
   mid=d.get('id');recipients=d.get('recipients')
@@ -66,6 +82,7 @@ def post(h,u,d,db):
    if action=='accept' and u['id'] not in members:
     if len(members)>=meal['capacity']:h.reply(409,{'error':'정원이 찼습니다. 초대를 거절하거나 제안자에게 문의해 주세요.'});return True
     members.append(u['id']);c.execute('UPDATE meals SET members=? WHERE id=?',(json.dumps(members),mid))
+   if action=='accept':save_days(c,mid,u['id'],d.get('days',[]))
    c.execute('UPDATE meal_invites SET status=? WHERE meal_id=? AND user_id=?',('accepted' if action=='accept' else 'declined',mid,u['id']))
   h.reply(200,{'ok':True});return True
  if h.path=='/api/meals/post':
@@ -85,6 +102,7 @@ def post(h,u,d,db):
    c.execute('INSERT INTO meals(user_id,restaurant,event_time,capacity,members) VALUES(?,?,?,?,?)',(u['id'],restaurant.strip(),when,capacity,json.dumps([u['id']])))
    mid=c.execute('SELECT id FROM meals WHERE user_id=? ORDER BY id DESC LIMIT 1',(u['id'],)).fetchone()[0]
    c.execute('INSERT INTO meal_places(meal_id,address,url) VALUES(?,?,?)',(mid,address,url))
+   save_days(c,mid,u['id'],d.get('days',[]))
   h.reply(201,{'ok':True});return True
  if h.path=='/api/meals/join':
   mid=d.get('id')
@@ -98,6 +116,8 @@ def post(h,u,d,db):
    elif len(members)>=meal['capacity']:h.reply(409,{'error':'정원이 찼습니다.'});return True
    else:members.append(u['id'])
    c.execute('UPDATE meals SET members=? WHERE id=?',(json.dumps(members),mid))
+   if u['id'] in members:save_days(c,mid,u['id'],d.get('days',[]))
+   else:c.execute('DELETE FROM meal_days WHERE meal_id=? AND user_id=?',(mid,u['id']))
    if u['id'] in members:c.execute("UPDATE meal_invites SET status='accepted' WHERE meal_id=? AND user_id=?",(mid,u['id']))
   h.reply(200,{'ok':True});return True
  h.reply(404,{'error':'찾을 수 없습니다.'});return True
