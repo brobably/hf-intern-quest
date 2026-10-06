@@ -13,7 +13,7 @@ function cleaningMarkup(full=false){
 function paintActivity(){
  const content=document.querySelector('#content');if(!content)return;
  const route=location.hash.slice(1);const a=activityState;
- if(route==='cleaning'){content.innerHTML=`<h1 class="view-title">금주 청소 담당자</h1>${panel('이번 주 청소 배정',cleaningMarkup(true))}`;return;}
+ if(route==='cleaning'){content.innerHTML=`<h1 class="view-title">금주 청소 담당자</h1>${panel('이번 주 청소 배정',cleaningMarkup(true))}${cleaningRotationMarkup()}`;return;}
  if(route==='reflex'){
   if(!content.querySelector('#reflex-play'))content.innerHTML=`<h1 class="view-title">순발력 대결</h1>${panel('반응속도 테스트','<p>시작 후 버튼이 노란색으로 바뀌면 누르세요. 너무 빨리 누르면 기록되지 않습니다.</p><button type="button" id="reflex-play">눌러서 시작</button><p id="reflex-message" role="status"></p>')}${panel('이번 주 참여자 랭킹','<div id="reflex-ranking"></div>')}`;
   content.querySelector('#reflex-ranking').innerHTML=a?memberRows(a.reflex,'reflex'):'기록을 불러오는 중…';
@@ -79,3 +79,19 @@ document.addEventListener('submit',async e=>{const form=e.target;if(form.id!=='r
 document.addEventListener('click',async e=>{const b=e.target.closest('.reflex-comment-delete');if(!b)return;if(!confirm('댓글을 삭제할까요?'))return;b.disabled=true;try{await activityRequest('reflex/comments/remove',{id:Number(b.dataset.id)});await loadReflexComments();}catch(error){b.disabled=false;const p=document.createElement('p');p.setAttribute('role','alert');p.textContent=error.message;b.after(p);}});
 
 document.addEventListener('change',e=>{if(e.target.id==='cleaning-department'){cleaningDepartment=e.target.value;paintActivity();}});
+
+function cleaningRotationMarkup(){
+ if(!activityState)return '';
+ const r=activityState.rotations?.find(r=>r.department===cleaningDepartment),members=activityState.members.filter(m=>m.department===cleaningDepartment),ids=r?JSON.parse(r.members):[];
+ const names=ids.map(id=>members.find(m=>m.id===id)?.name||'부서 변경 또는 탈퇴 회원');
+ const summary=r?`<p><strong>${esc(r.area)}</strong> · ${esc(r.start_week)} 시작</p><p>${names.map(esc).join(' → ')} → 반복</p>`:'<p class="muted">저장된 로테이션이 없습니다.</p>';
+ if(window.hfAuth.user.role!=='admin')return panel('매주 로테이션',summary);
+ return panel('매주 로테이션',summary+`<p class="muted">참여자 순서대로 매주 한 명씩 자동 배정됩니다. 시작 주는 월요일을 선택하세요. 부서가 바뀌거나 탈퇴한 회원은 제외됩니다.</p><form id="cleaning-rotation-form" class="board-form"><label>시작 주<input class="field" type="date" name="start_week" value="${esc(r?.start_week>=activityState.week?r.start_week:activityState.week)}" min="${activityState.week}" required></label><label>담당 구역<input class="field" name="area" maxlength="80" value="${esc(r?.area||'공용 공간')}" required></label><p>참여할 회원의 순서를 숫자로 입력하세요. 빈칸은 제외됩니다.</p>${members.map(m=>`<label class="row"><span>${esc(m.name)}</span><input class="field" style="width:90px" type="number" min="1" max="100" step="1" data-rotation-member="${m.id}" aria-label="${esc(m.name)} 순서" value="${ids.includes(m.id)?ids.indexOf(m.id)+1:''}"></label>`).join('')}<div class="toolbar"><button class="primary" ${members.length?'':'disabled'}>로테이션 저장</button>${r?'<button type="button" class="auth-link" id="cleaning-rotation-stop">자동 배정 중지</button>':''}</div><p class="muted">이미 배정된 이번 주 당번은 유지됩니다. 수정하려면 위의 배정 삭제를 사용하세요.</p><p class="board-status" role="status"></p></form>`);
+}
+document.addEventListener('submit',async e=>{
+ if(e.target.id!=='cleaning-rotation-form')return;e.preventDefault();const f=e.target,note=f.querySelector('.board-status'),d=Object.fromEntries(new FormData(f));
+ const order=[...f.querySelectorAll('[data-rotation-member]')].filter(i=>i.value).map(i=>({id:Number(i.dataset.rotationMember),order:Number(i.value)})).sort((a,b)=>a.order-b.order);
+ if(!order.length||new Set(order.map(i=>i.order)).size!==order.length){note.textContent='참여자를 선택하고 서로 다른 순서를 입력해 주세요.';return;}
+ const b=f.querySelector('button');b.disabled=true;try{await activityRequest('cleaning/rotation',{department:cleaningDepartment,area:d.area,start_week:d.start_week,members:order.map(i=>i.id)});await loadActivity();}catch(error){note.textContent=error.message;b.disabled=false;}
+});
+document.addEventListener('click',async e=>{const b=e.target.closest('#cleaning-rotation-stop');if(!b)return;b.disabled=true;try{await activityRequest('cleaning/rotation/stop',{department:cleaningDepartment});await loadActivity();}catch(error){b.disabled=false;b.closest('form').querySelector('.board-status').textContent=error.message;}});

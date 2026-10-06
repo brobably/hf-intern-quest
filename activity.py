@@ -5,9 +5,25 @@ def today():return datetime.now(ZONE).date().isoformat()
 def week():
  d=datetime.now(ZONE).date();return (d-timedelta(days=d.weekday())).isoformat()
 def initialize(c):
+ c.execute('CREATE TABLE IF NOT EXISTS cleaning_rotation_weeks(department TEXT NOT NULL,week TEXT NOT NULL,PRIMARY KEY(department,week))')
+ c.execute('CREATE TABLE IF NOT EXISTS cleaning_rotations(department TEXT PRIMARY KEY,start_week TEXT NOT NULL,area TEXT NOT NULL,members TEXT NOT NULL)')
  c.execute('CREATE TABLE IF NOT EXISTS reflex_comments(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,body TEXT NOT NULL,created TEXT NOT NULL)')
  c.executescript('''CREATE TABLE IF NOT EXISTS points(user_id INTEGER NOT NULL,event_key TEXT NOT NULL,day TEXT NOT NULL,amount INTEGER NOT NULL,PRIMARY KEY(user_id,event_key));CREATE TABLE IF NOT EXISTS reflex_runs(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL,ready DOUBLE PRECISION NOT NULL,used INTEGER NOT NULL DEFAULT 0);CREATE TABLE IF NOT EXISTS reflex_scores(user_id INTEGER NOT NULL,week TEXT NOT NULL,ms INTEGER NOT NULL,PRIMARY KEY(user_id,week));CREATE TABLE IF NOT EXISTS cleaning_jobs(id INTEGER PRIMARY KEY,week TEXT NOT NULL,user_id INTEGER NOT NULL,area TEXT NOT NULL,done INTEGER NOT NULL DEFAULT 0,UNIQUE(week,user_id,area));''')
  c.executescript("CREATE TABLE IF NOT EXISTS announcements(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,created TEXT NOT NULL);CREATE TABLE IF NOT EXISTS calendar_events(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,day TEXT NOT NULL,body TEXT NOT NULL);")
+def rotation_member(c,r,target_week):
+ ids=json.loads(r['members']);eligible=[]
+ for uid in ids:
+  if c.execute("SELECT users.id FROM users JOIN user_profiles ON users.id=user_profiles.user_id WHERE users.id=? AND users.status='approved' AND department=?",(uid,r['department'])).fetchone():eligible.append(uid)
+ offset=(datetime.strptime(target_week,'%Y-%m-%d')-datetime.strptime(r['start_week'],'%Y-%m-%d')).days//7
+ return eligible[offset%len(eligible)] if eligible and offset>=0 else None
+
+def materialize_rotations(c,target_week):
+ for r in c.execute('SELECT * FROM cleaning_rotations').fetchall():
+  uid=rotation_member(c,r,target_week)
+  if uid and not c.execute('SELECT week FROM cleaning_rotation_weeks WHERE department=? AND week=?',(r['department'],target_week)).fetchone():
+   c.execute('INSERT OR IGNORE INTO cleaning_jobs(week,user_id,area) VALUES(?,?,?)',(target_week,uid,r['area']))
+   c.execute('INSERT OR IGNORE INTO cleaning_rotation_weeks(department,week) VALUES(?,?)',(r['department'],target_week))
+
 def award(c,uid,key,amount):c.execute('INSERT OR IGNORE INTO points(user_id,event_key,day,amount) VALUES(?,?,?,?)',(uid,key,today(),amount))
 def get(h,u,db):
  if h.path=='/api/reflex/comments':
@@ -16,6 +32,8 @@ def get(h,u,db):
  if h.path!='/api/activity':return False
  month=today()[:7]
  with db() as c:
+  materialize_rotations(c,week())
+  rotations=[dict(r) for r in c.execute('SELECT * FROM cleaning_rotations')]
   xp=c.execute('SELECT COALESCE(SUM(amount),0) FROM points WHERE user_id=?',(u['id'],)).fetchone()[0]
   ranking=[dict(r) for r in c.execute("SELECT users.id,users.name,COALESCE(SUM(points.amount),0) AS xp FROM users LEFT JOIN points ON points.user_id=users.id AND points.day LIKE ? WHERE users.status='approved' GROUP BY users.id,users.name ORDER BY xp DESC,users.id",(month+'%',))]
   reflex=[dict(r) for r in c.execute('SELECT users.id,users.name,reflex_scores.ms FROM reflex_scores JOIN users ON users.id=reflex_scores.user_id WHERE week=? AND users.status=? ORDER BY ms,users.id',(week(),'approved'))]
@@ -23,13 +41,14 @@ def get(h,u,db):
   members=[dict(r) for r in c.execute("SELECT users.id,name,COALESCE(department,'') AS department FROM users LEFT JOIN user_profiles ON users.id=user_profiles.user_id WHERE status='approved' ORDER BY name")]
   cleaning=[dict(r) for r in c.execute("SELECT cleaning_jobs.*,users.name,COALESCE(department,'') AS department FROM cleaning_jobs JOIN users ON users.id=cleaning_jobs.user_id LEFT JOIN user_profiles ON users.id=user_profiles.user_id WHERE week=? ORDER BY cleaning_jobs.id",(week(),))]
   if u['role']!='admin':
+   rotations=[r for r in rotations if department and r['department']==department]
    cleaning=[r for r in cleaning if department and r['department']==department]
    members=[r for r in members if department and r['department']==department]
   history=[dict(r) for r in c.execute('SELECT event_key,day,amount FROM points WHERE user_id=? ORDER BY day DESC LIMIT 30',(u['id'],))]
   announcements=[dict(r) for r in c.execute('SELECT id,title,body,created FROM announcements ORDER BY id DESC LIMIT 20')]
   events=[dict(r) for r in c.execute('SELECT id,day,body FROM calendar_events WHERE user_id=? ORDER BY id',(u['id'],))]
   clean_done=c.execute("SELECT COUNT(*) FROM points WHERE user_id=? AND event_key LIKE 'clean:%'",(u['id'],)).fetchone()[0]
- h.reply(200,dict(xp=int(xp),month=month,ranking=ranking,reflex=reflex,cleaning=cleaning,members=members,department=department,week=week(),history=history,clean_done=clean_done,announcements=announcements,events=events));return True
+ h.reply(200,dict(xp=int(xp),month=month,ranking=ranking,reflex=reflex,cleaning=cleaning,rotations=rotations,members=members,department=department,week=week(),history=history,clean_done=clean_done,announcements=announcements,events=events));return True
 def post(h,u,d,db):
  path=h.path
  if path=='/api/reflex/comments/post':
@@ -83,6 +102,26 @@ def post(h,u,d,db):
    old=c.execute('SELECT ms FROM reflex_scores WHERE user_id=? AND week=?',(u['id'],week())).fetchone()
    if not old:c.execute('INSERT INTO reflex_scores(user_id,week,ms) VALUES(?,?,?)',(u['id'],week(),ms))
    elif ms<old['ms']:c.execute('UPDATE reflex_scores SET ms=? WHERE user_id=? AND week=?',(ms,u['id'],week()))
+  h.reply(200,{'ok':True});return True
+ if path in ['/api/cleaning/rotation','/api/cleaning/rotation/stop']:
+  if u['role']!='admin':h.reply(403,{'error':'관리자만 로테이션을 설정할 수 있습니다.'});return True
+  department=d.get('department')
+  if not isinstance(department,str) or not 1<=len(department.strip())<=80:h.reply(400,{'error':'부서를 선택해 주세요.'});return True
+  with db() as c:
+   c.execute('BEGIN IMMEDIATE')
+   if path.endswith('/stop'):
+    c.execute('DELETE FROM cleaning_rotations WHERE department=?',(department,))
+   else:
+    ids=d.get('members');area=d.get('area');start=d.get('start_week')
+    try:
+     date=datetime.strptime(start,'%Y-%m-%d')
+     assert date.weekday()==0 and start>=week()
+    except (TypeError,ValueError,AssertionError):h.reply(400,{'error':'시작 주는 이번 주 이후의 월요일을 선택해 주세요.'});return True
+    if not isinstance(ids,list) or not 1<=len(ids)<=100 or any(type(i)!=int for i in ids) or len(set(ids))!=len(ids) or not isinstance(area,str) or not 1<=len(area.strip())<=80:h.reply(400,{'error':'참여 순서와 담당 구역을 확인해 주세요.'});return True
+    for uid in ids:
+     if not c.execute("SELECT users.id FROM users JOIN user_profiles ON users.id=user_profiles.user_id WHERE users.id=? AND users.status='approved' AND department=?",(uid,department)).fetchone():h.reply(400,{'error':'선택한 부서의 승인된 회원만 참여할 수 있습니다.'});return True
+    c.execute('DELETE FROM cleaning_rotations WHERE department=?',(department,))
+    c.execute('INSERT INTO cleaning_rotations(department,start_week,area,members) VALUES(?,?,?,?)',(department,start,area.strip(),json.dumps(ids)))
   h.reply(200,{'ok':True});return True
  if path=='/api/cleaning/assign':
   if u['role']!='admin':h.reply(403,{'error':'관리자만 당번을 설정할 수 있습니다.'});return True
