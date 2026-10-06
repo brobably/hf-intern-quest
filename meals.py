@@ -15,7 +15,11 @@ def initialize(c):
  c.execute("CREATE TABLE IF NOT EXISTS meal_invites(meal_id INTEGER NOT NULL,user_id INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'pending',PRIMARY KEY(meal_id,user_id))")
 
 def weekly_rows(c,w):
- return [{**dict(r),'statuses':json.loads(r['statuses'])} for r in c.execute("SELECT meal_weekly_status.* FROM meal_weekly_status JOIN users ON users.id=meal_weekly_status.user_id WHERE week=? AND users.status='approved'",(w,))]
+ rows=[]
+ for r in c.execute("SELECT meal_weekly_status.* FROM meal_weekly_status JOIN users ON users.id=meal_weekly_status.user_id WHERE week=? AND users.status='approved'",(w,)):
+  value=json.loads(r['statuses']);lunch=value if isinstance(value,list) else value['lunch'];dinner=[-1]*5 if isinstance(value,list) else value['dinner']
+  rows.append({**dict(r),'statuses':lunch,'lunch':lunch,'dinner':dinner})
+ return rows
 
 def get(h,u,db):
  if urlsplit(h.path).path=='/api/meals/weekly':
@@ -59,11 +63,13 @@ def post(h,u,d,db):
  if not h.path.startswith('/api/meals/'):return False
  if 'days' in d and not valid_days(d['days']):h.reply(400,{'error':'월~금 중 가능한 요일을 하나 이상 선택해 주세요.'});return True
  if h.path=='/api/meals/weekly':
-  statuses=d.get('statuses')
-  if d.get('week')!=activity.week() or not isinstance(statuses,list) or len(statuses)!=5 or any(type(x)!=int or x not in [-1,0,1] for x in statuses):h.reply(400,{'error':'이번 주 월~금 식사 상태를 확인해 주세요.'});return True
+  lunch=d.get('lunch',d.get('statuses'));dinner=d.get('dinner',[-1]*5)
+  def valid(values):return isinstance(values,list) and len(values)==5 and all(type(x)==int and x in [-1,0,1] for x in values)
+  if d.get('week')!=activity.week() or not valid(lunch) or not valid(dinner):h.reply(400,{'error':'이번 주 월~금 점심과 저녁 상태를 확인해 주세요.'});return True
+  value=json.dumps({'lunch':lunch,'dinner':dinner})
   with db() as c:
-   c.execute('INSERT OR IGNORE INTO meal_weekly_status(user_id,week,statuses) VALUES(?,?,?)',(u['id'],activity.week(),json.dumps(statuses)))
-   c.execute('UPDATE meal_weekly_status SET statuses=? WHERE user_id=? AND week=?',(json.dumps(statuses),u['id'],activity.week()))
+   c.execute('INSERT OR IGNORE INTO meal_weekly_status(user_id,week,statuses) VALUES(?,?,?)',(u['id'],activity.week(),value))
+   c.execute('UPDATE meal_weekly_status SET statuses=? WHERE user_id=? AND week=?',(value,u['id'],activity.week()))
   h.reply(200,{'ok':True});return True
  if h.path=='/api/meals/complete':
   mid=d.get('id')
