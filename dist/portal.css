@@ -146,3 +146,5 @@ aside>a { gap:10px; } aside>a p:first-child { color:#133c62; }
 .meal-card-main-actions { display:flex; align-items:center; flex-wrap:wrap; gap:14px; margin-top:22px; } .meal-card-main-actions .primary { padding:10px 16px; border-radius:8px; } .meal-card-main-actions .auth-link { font-size:13px; }
 .meal-card-complete { display:flex; align-items:center; justify-content:space-between; gap:12px; background:#f5f8fb; border-radius:8px; padding:10px 12px; margin-top:18px; } .meal-card-complete > span { font-size:12px; color:#657486; } .meal-card-complete button { font-size:12px; }
 .meal-card-owner { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:18px; padding-top:14px; border-top:1px solid #e8eef4; } .meal-card-owner > span { font-size:12px; color:#657486; } .meal-card-owner button { font-size:12px; }
+
+.auto-news-section { margin:20px 0 32px; } .auto-news-section > .muted { font-size:13px; margin:12px 0 20px; } .auto-news-row { text-decoration:none; } .auto-news-row .wiki-title-main strong { font-weight:400; } .auto-news-row > span:last-child { color:#0054a0; }

@@ -9,6 +9,7 @@ from storage import connect,IntegrityError
 import activity
 import meals
 import wiki
+import news
 BASE=Path(__file__).resolve().parent
 DATA=Path(os.environ.get('HF_DATA',str(BASE/'data')));DATA.mkdir(exist_ok=True)
 DB=DATA/'accounts.sqlite3'
@@ -27,6 +28,7 @@ with db() as c:
  activity.initialize(c)
  meals.initialize(c)
  wiki.initialize(c)
+ news.initialize(c)
  # Admin bootstrap is a private runtime secret, never a committed database.
  seed=os.environ.get('HF_ADMIN_SEED')
  if seed and not c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0]:
@@ -70,6 +72,7 @@ class Handler(SimpleHTTPRequestHandler):
   if activity.get(self,u,db):return
   if meals.get(self,u,db):return
   if wiki.get(self,u,db):return
+  if news.get(self,u,db):return
   if self.path.startswith('/api/boards/'):
    kind=self.path.split('/')[-1]
    if kind not in ['study','articles','jobs','qna','suggestions']:return self.reply(404,{'error':'게시판이 없습니다.'})
