@@ -12,6 +12,7 @@ lock=threading.Lock()
 def initialize(c):
  c.execute('CREATE TABLE IF NOT EXISTS news_items(link TEXT PRIMARY KEY,title TEXT NOT NULL,category TEXT NOT NULL,published TEXT NOT NULL)')
  c.execute('CREATE TABLE IF NOT EXISTS news_cache(id INTEGER PRIMARY KEY,updated TEXT NOT NULL,attempt DOUBLE PRECISION NOT NULL,error TEXT NOT NULL)')
+ c.execute('CREATE TABLE IF NOT EXISTS news_saved(user_id INTEGER NOT NULL,link TEXT NOT NULL,title TEXT NOT NULL,category TEXT NOT NULL,published TEXT NOT NULL,saved TEXT NOT NULL,PRIMARY KEY(user_id,link))')
 def parse_feed(raw,category,now=None):
  now=now or datetime.now(ZONE)
  if len(raw)>2000000 or b'<!DOCTYPE' in raw.upper() or b'<!ENTITY' in raw.upper():raise ValueError('Invalid RSS')
@@ -56,6 +57,9 @@ def refresh(db):
  finally:lock.release()
 
 def get(h,u,db):
+ if h.path=='/api/news/saved':
+  with db() as c:rows=[dict(r) for r in c.execute('SELECT * FROM news_saved WHERE user_id=? ORDER BY saved DESC',(u['id'],))]
+  h.reply(200,{'articles':rows});return True
  if h.path!='/api/news':return False
  with db() as c:
   meta=c.execute('SELECT * FROM news_cache WHERE id=1').fetchone();count=c.execute('SELECT COUNT(*) FROM news_items').fetchone()[0]
@@ -65,4 +69,17 @@ def get(h,u,db):
   else:refresh(db)
  with db() as c:
   rows=[dict(r) for r in c.execute('SELECT * FROM news_items ORDER BY published DESC LIMIT 100')];meta=c.execute('SELECT * FROM news_cache WHERE id=1').fetchone()
- h.reply(200,{'articles':rows,'updated':meta['updated'] if meta else '', 'notice':meta['error'] if meta else '', 'today':datetime.now(ZONE).date().isoformat()});return True
+ with db() as c:saved=[r['link'] for r in c.execute('SELECT link FROM news_saved WHERE user_id=?',(u['id'],))]
+ h.reply(200,{'articles':rows,'saved':saved,'updated':meta['updated'] if meta else '', 'notice':meta['error'] if meta else '', 'today':datetime.now(ZONE).date().isoformat()});return True
+
+def post(h,u,d,db):
+ if h.path not in ['/api/news/save','/api/news/unsave']:return False
+ link=d.get('link')
+ if not isinstance(link,str) or len(link)>2000:h.reply(400,{'error':'기사를 확인해 주세요.'});return True
+ with db() as c:
+  if h.path.endswith('/unsave'):c.execute('DELETE FROM news_saved WHERE user_id=? AND link=?',(u['id'],link))
+  else:
+   article=c.execute('SELECT * FROM news_items WHERE link=?',(link,)).fetchone()
+   if not article:h.reply(404,{'error':'이 기사는 수집 목록에서 만료되었습니다.'});return True
+   c.execute('INSERT OR IGNORE INTO news_saved(user_id,link,title,category,published,saved) VALUES(?,?,?,?,?,?)',(u['id'],link,article['title'],article['category'],article['published'],datetime.now(ZONE).isoformat()))
+ h.reply(200,{'ok':True});return True

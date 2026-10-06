@@ -135,6 +135,7 @@ class Handler(SimpleHTTPRequestHandler):
   u=self.user()
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
   if activity.post(self,u,d,db):return
+  if news.post(self,u,d,db):return
   if path=='/api/admin/department':
    if u['role']!='admin':return self.reply(403,{'error':'관리자만 부서를 변경할 수 있습니다.'})
    uid=d.get('id');department=d.get('department')

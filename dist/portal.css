@@ -148,3 +148,5 @@ aside>a { gap:10px; } aside>a p:first-child { color:#133c62; }
 .meal-card-owner { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:18px; padding-top:14px; border-top:1px solid #e8eef4; } .meal-card-owner > span { font-size:12px; color:#657486; } .meal-card-owner button { font-size:12px; }
 
 .auto-news-section { margin:20px 0 32px; } .auto-news-section > .muted { font-size:13px; margin:12px 0 20px; } .auto-news-row { text-decoration:none; } .auto-news-row .wiki-title-main strong { font-weight:400; } .auto-news-row > span:last-child { color:#0054a0; }
+
+.news-saved-row{display:flex;align-items:center;border-bottom:1px solid #e1eaf3;gap:12px;padding-right:14px}.news-saved-row:last-child{border-bottom:0}.news-saved-row .auto-news-row{flex:1;min-width:0;border:0}.news-saved-row .news-save{flex-shrink:0;white-space:nowrap;font-size:13px}.news-save[aria-pressed="true"]{color:#0054a0;background:#eaf3fb;border-radius:8px;padding:8px 10px}
