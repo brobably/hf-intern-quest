@@ -94,3 +94,22 @@ aside>a { gap:10px; } aside>a p:first-child { color:#133c62; }
 .member-department { display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:13px; } .member-department input { width:160px; padding:6px; }
 .meal-weekdays { border:0; padding:0; display:flex; flex-wrap:wrap; gap:10px; } .meal-weekdays legend { font-weight:600; margin-bottom:10px; } .board-form .meal-weekdays label { display:flex; align-items:center; gap:6px; padding:8px 12px; background:#edf4fb; border-radius:8px; } .meal-weekdays input { accent-color:#0054a0; width:18px; height:18px; } #meal-days-dialog { width:min(540px,92vw); padding:24px; border:1px solid #d3e1ed; border-radius:16px; } #meal-days-dialog::backdrop { background:#19334b66; } .meal-availability { padding:10px 14px; background:#f1f6fb; margin-bottom:14px; border-radius:8px; } .meal-availability p { font-size:13px; margin:5px 0; }
 .registry-example-note { padding:12px 16px; background:#edf4fb; border-radius:8px; color:#31577b; } .registry-paper { position:relative; isolation:isolate; margin:24px 0; padding:28px; border:1px solid #c8d4df; background:#fff; color:#25313d; } .registry-paper h2 { text-align:center; } .registry-paper h3 { font-weight:700; margin:24px 0 10px; } .registry-watermark { position:absolute; z-index:-1; inset:0; display:grid; place-items:center; font-size:clamp(30px,6vw,70px); color:#0054a00c; transform:rotate(-20deg); pointer-events:none; } .registry-table-scroll { overflow-x:auto; } .registry-paper table { width:100%; min-width:620px; border-collapse:collapse; font-size:13px; } .registry-paper th,.registry-paper td { padding:12px; border:1px solid #c8d4df; text-align:left; vertical-align:top; line-height:1.7; } .registry-paper th { background:#f2f6fa; font-weight:600; } .registry-footer { text-align:center; font-size:12px; color:#657486; margin-top:24px; } .registry-reading { margin-bottom:24px; } .registry-reading article { padding:16px; background:#f6f9fc; border-radius:8px; } .registry-reading h3 { font-weight:700; margin-bottom:8px; } @media(max-width:600px){ .registry-paper { padding:16px; } }
+
+/* Separate meal creation from the proposal feed. */
+.meal-compose-bar { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:12px 0 26px; border-bottom:1px solid #dce5ee; margin:8px 0 30px; }
+.meal-compose-bar h2 { font-size:20px; margin:0 0 8px; color:#193b5b; }
+.meal-compose-bar p { margin:0; color:#657486; font-size:14px; }
+.meal-compose-bar #meal-create { flex-shrink:0; display:inline-flex; align-items:center; gap:8px; padding:12px 20px; border-radius:10px; }
+.meal-list-heading { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+.meal-list-heading h2 { margin:0; font-size:18px; color:#193b5b; }
+.meal-count { background:#eaf1f8; color:#476481; padding:3px 9px; border-radius:20px; font-size:12px; }
+.meal-proposal-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; align-items:start; }
+.meal-proposal-grid .meal-card { margin:0; padding:24px; background:white; border-color:#dce5ee; border-radius:14px; box-shadow:0 2px 8px #193b5b04; min-width:0; overflow-wrap:anywhere; }
+.meal-proposal-grid .meal-card h3 { margin:0 0 16px; font-size:18px; }
+.meal-proposal-grid .restaurant-tag { background:#edf4fb; border-radius:8px; padding:6px 12px; }
+.meal-proposal-grid .meal-card-actions { padding-top:16px; margin-top:18px; border-top:1px solid #e8eef4; align-items:center; }
+.meal-proposal-grid .meal-card-actions button { font-size:13px; }
+.meal-empty { grid-column:1/-1; text-align:center; padding:48px 24px; border:1px dashed #ccd9e6; border-radius:14px; color:#476481; background:#f8fafc; }
+.meal-empty p { margin:10px 0 0; font-size:14px; color:#657486; }
+@media(max-width:900px) { .meal-proposal-grid { grid-template-columns:1fr; } }
+@media(max-width:600px) { .meal-compose-bar { flex-direction:column; align-items:stretch; gap:18px; } .meal-compose-bar #meal-create { justify-content:center; } .meal-compose-bar h2 { font-size:18px; } .meal-proposal-grid .meal-card { padding:20px; } }
