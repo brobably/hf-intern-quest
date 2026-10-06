@@ -45,13 +45,13 @@ async function boardRequest(path,data){
  const result=await response.json();if(!response.ok)throw Error(result.error||'요청에 실패했습니다.');if(data)loadActivity();return result;
 }
 async function renderBoard(kind,content){
- if(kind==='articles'){content.innerHTML+=`<section class="auto-news-section"><div class="meal-list-heading"><h2>자동으로 모은 최신 기사</h2><span class="meal-count">경제·금융 / 부동산</span></div><p class="muted">매일경제 RSS · 제목을 누르면 기사 원문으로 이동합니다.</p><div id="auto-news-filters" class="wiki-departments"></div><p id="auto-news-status" class="muted" role="status"></p><div id="auto-news-list" class="wiki-title-list">기사를 불러오는 중…</div></section>`;}
+ if(kind==='articles'){content.innerHTML+=`<section class="auto-news-section"><div class="meal-list-heading"><h2>자동으로 모은 최신 기사</h2><span class="meal-count">경제·금융 / 부동산</span></div><p class="muted">매일경제 RSS · 제목을 누르면 기사 원문으로 이동합니다.</p><div id="auto-news-filters" class="wiki-departments"></div><p id="auto-news-status" class="muted" role="status"></p><div id="auto-news-list" class="wiki-title-list">기사를 불러오는 중…</div></section>`;loadAutoNews();return;}
  const admin=window.hfAuth.user.role==='admin',news=['articles','jobs'].includes(kind);
  const intro={study:'공부할 주제와 시간, 장소를 적고 함께할 인턴을 찾아보세요.',articles:'관리자가 직접 추천한 기사와 원문 링크도 함께 모아 봅니다.',jobs:'관리자가 등록한 채용 공고입니다. 지원 조건과 마감일은 원문에서 확인하세요.',qna:admin?'인턴들의 비공개 질문에 답변해 주세요.':'질문은 작성자와 관리자만 볼 수 있습니다.',suggestions:'포털 개선 아이디어와 인턴 생활에 대한 의견을 함께 나눠요.'}[kind];
  content.innerHTML+=panel(titles[kind],`<p>${intro}</p><p class="muted">${calendarToday} · ${kind==='articles'?'관리자 추천 기사':news?'직접 등록한 소식 · 자동 수집은 아직 연결되지 않았습니다.':'승인된 인턴들이 사용하는 게시판입니다.'}</p>`);
  if(!news||admin)content.innerHTML+=panel(news?'소식 등록':kind==='study'?'공부 모임 만들기':kind==='qna'?'질문하기':'건의사항 작성',`<form id="board-form" data-kind="${kind}" class="board-form"><label>제목<input class="field" name="title" maxlength="120" required placeholder="${kind==='study'?'예: 퇴근 후 NCS 같이 공부해요':'제목을 입력하세요'}"></label>${kind==='study'?'<label>모임 날짜<input type="date" class="field" name="event_day" required></label>':''}<label>${kind==='study'?'공부 주제 · 시간 · 장소':'내용'}<textarea class="field" name="body" maxlength="5000" required rows="4" placeholder="내용을 입력하세요"></textarea></label>${news?'<label>원문 주소<input type="url" class="field" name="link" required placeholder="https://..."></label>':''}<button class="primary">${news?'소식 등록':'등록하기'}</button><p class="board-status" role="status"></p></form>`);
  const list=document.createElement('div');list.className='board-list';list.innerHTML='<p role="status">게시글을 불러오는 중…</p>';content.append(list);
- if(kind==='articles')loadAutoNews();
+
  try{const {posts}=await boardRequest(kind);if(!content.isConnected)return;
  list.innerHTML=posts.length?posts.map(p=>{
   const today=p.created.slice(0,10)===calendarToday;const own=p.user_id===window.hfAuth.user.id;const joined=p.members.includes(window.hfAuth.user.id);
