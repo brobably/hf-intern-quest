@@ -90,7 +90,7 @@ class Handler(SimpleHTTPRequestHandler):
   if self.headers.get('Content-Type','').split(';')[0]!='application/json':return self.reply(415,{'error':'JSON 요청이 필요합니다.'})
   try:
    n=int(self.headers.get('Content-Length','0'))
-   if n<1 or n>100000:return self.reply(413,{'error':'요청 크기를 확인해 주세요.'})
+   if n<1 or n>(1800000 if self.path=='/api/wiki/post' else 100000):return self.reply(413,{'error':'요청 크기를 확인해 주세요.'})
    d=json.loads(self.rfile.read(n))
    if not isinstance(d,dict):raise ValueError()
   except:return self.reply(400,{'error':'요청 내용을 확인해 주세요.'})
