@@ -113,3 +113,5 @@ aside>a { gap:10px; } aside>a p:first-child { color:#133c62; }
 .meal-empty p { margin:10px 0 0; font-size:14px; color:#657486; }
 @media(max-width:900px) { .meal-proposal-grid { grid-template-columns:1fr; } }
 @media(max-width:600px) { .meal-compose-bar { flex-direction:column; align-items:stretch; gap:18px; } .meal-compose-bar #meal-create { justify-content:center; } .meal-compose-bar h2 { font-size:18px; } .meal-proposal-grid .meal-card { padding:20px; } }
+
+.meal-reward-guide { padding:16px 20px; border-radius:10px; background:#edf4fb; color:#315575; line-height:1.7; margin-bottom:24px; } .meal-reward-guide small { color:#657486; } .meal-completion { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding-top:12px; } .meal-completion p { color:#657486; font-size:13px; flex:1; } .meal-complete { white-space:nowrap; font-weight:600; }
