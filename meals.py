@@ -6,6 +6,7 @@ from urllib.error import URLError
 from datetime import datetime
 
 def initialize(c):
+ c.execute('CREATE TABLE IF NOT EXISTS meal_rewards(meal_id INTEGER NOT NULL,user_id INTEGER NOT NULL,PRIMARY KEY(meal_id,user_id))')
  c.execute('CREATE TABLE IF NOT EXISTS meal_confirmations(meal_id INTEGER NOT NULL,user_id INTEGER NOT NULL,PRIMARY KEY(meal_id,user_id))')
  c.execute('CREATE TABLE IF NOT EXISTS meal_days(meal_id INTEGER NOT NULL,user_id INTEGER NOT NULL,days TEXT NOT NULL,PRIMARY KEY(meal_id,user_id))')
  c.execute("CREATE TABLE IF NOT EXISTS meals(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,restaurant TEXT NOT NULL,event_time TEXT NOT NULL,capacity INTEGER NOT NULL,members TEXT NOT NULL)")
@@ -56,9 +57,11 @@ def post(h,u,d,db):
    c.execute('INSERT OR IGNORE INTO meal_confirmations(meal_id,user_id) VALUES(?,?)',(mid,u['id']))
    confirmed=[r[0] for r in c.execute('SELECT user_id FROM meal_confirmations WHERE meal_id=?',(mid,))]
    if len(confirmed)>=2:
-    day=meal['event_time'][:10]
+    day=activity.today()
     for uid in confirmed:
-     activity.award(c,uid,'meal-day:'+day,10)
+     if not c.execute('SELECT user_id FROM meal_rewards WHERE meal_id=? AND user_id=?',(mid,uid)).fetchone():
+      activity.award(c,uid,'meal-day:'+day,10)
+      c.execute('INSERT OR IGNORE INTO meal_rewards(meal_id,user_id) VALUES(?,?)',(mid,uid))
      for other in confirmed:
       if other!=uid:activity.award(c,uid,'meal-new:'+str(other),5)
    after=c.execute('SELECT COALESCE(SUM(amount),0) FROM points WHERE user_id=?',(u['id'],)).fetchone()[0]
@@ -78,6 +81,7 @@ def post(h,u,d,db):
    c.execute('BEGIN IMMEDIATE');meal=c.execute('SELECT user_id FROM meals WHERE id=?',(mid,)).fetchone()
    if not meal:h.reply(404,{'error':'식사 제안이 없습니다.'});return True
    if meal['user_id']!=u['id']:h.reply(403,{'error':'본인이 만든 식사 제안만 삭제할 수 있습니다.'});return True
+   c.execute('DELETE FROM meal_rewards WHERE meal_id=?',(mid,))
    c.execute('DELETE FROM meal_confirmations WHERE meal_id=?',(mid,))
    c.execute('DELETE FROM meal_days WHERE meal_id=?',(mid,));c.execute('DELETE FROM meal_invites WHERE meal_id=?',(mid,));c.execute('DELETE FROM meal_places WHERE meal_id=?',(mid,));c.execute('DELETE FROM meals WHERE id=?',(mid,))
   h.reply(200,{'ok':True});return True
