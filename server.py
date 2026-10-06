@@ -45,6 +45,7 @@ class Handler(SimpleHTTPRequestHandler):
  def __init__(self,*a,**kw):super().__init__(*a,directory=str(BASE/'dist'),**kw)
  def log_message(self,*a):pass
  def end_headers(self):
+  if not self.path.startswith('/api/'):self.send_header('Cache-Control','no-cache')
   self.send_header('X-Content-Type-Options','nosniff');self.send_header('Referrer-Policy','same-origin');self.send_header('X-Frame-Options','DENY');super().end_headers()
  def reply(self,status,obj,cookie=None):
   b=json.dumps(obj,ensure_ascii=False).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(b)))
