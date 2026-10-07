@@ -29,6 +29,13 @@ with db() as c:
  meals.initialize(c)
  wiki.initialize(c)
  news.initialize(c)
+ # Apply the explicitly requested account promotions once, preserving later role changes.
+ c.execute('CREATE TABLE IF NOT EXISTS account_changes(change_key TEXT PRIMARY KEY)')
+ if not c.execute('SELECT change_key FROM account_changes WHERE change_key=?',('admin-promotion-20261007',)).fetchone():
+  targets=[('김태욱','56512'),('이강인','1234')]
+  if all(c.execute("SELECT id FROM users WHERE name=? AND employee=? AND status='approved'",target).fetchone() for target in targets):
+   for target in targets:c.execute("UPDATE users SET role='admin' WHERE name=? AND employee=? AND status='approved'",target)
+   c.execute('INSERT OR IGNORE INTO account_changes(change_key) VALUES(?)',('admin-promotion-20261007',))
  # Admin bootstrap is a private runtime secret, never a committed database.
  seed=os.environ.get('HF_ADMIN_SEED')
  if seed and not c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0]:

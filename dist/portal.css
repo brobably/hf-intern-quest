@@ -170,3 +170,5 @@ main header{justify-content:space-between!important;gap:16px}.header-cleaning{di
 .today-meal-attendees{margin-top:14px}.today-meal-attendees-label{display:block;font-size:13px;font-weight:600;color:#4d647c;margin-bottom:7px}.today-meal-attendee-list{display:flex;flex-wrap:wrap;gap:8px}.today-meal-attendee{display:inline-flex;align-items:center;padding:6px 12px;background:#fff;border:1px solid #b8d0e7;border-radius:8px;font-size:16px;font-weight:600;line-height:1.4;color:#173d60}
 
 .today-meal-attendee{padding:4px 9px;font-size:14px;font-weight:500}.header-cleaning{cursor:default}.header-cleaning:hover{background:#eef5fc}.dashboard-monthly-ranking{margin-top:12px}.dashboard-monthly-ranking>p.muted{margin-top:8px;margin-bottom:18px}
+
+.admin-badge{display:inline-flex;align-items:center;padding:2px 6px;margin-left:4px;border-radius:5px;background:#dceaf8;color:#0054a0;border:1px solid #bcd3eb;font-size:11px;font-weight:600;line-height:1.4;vertical-align:middle;white-space:nowrap}
