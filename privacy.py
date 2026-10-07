@@ -4,6 +4,8 @@ TEST_EMPLOYEE='1111'
 TEST_NAME='테스트계정'
 VIEWER_EMPLOYEE='56512'
 
+def test_ids(c):return {r[0] for r in c.execute('SELECT id FROM users WHERE employee=? AND name=?',(TEST_EMPLOYEE,TEST_NAME))}
+
 def hidden(c,u):
  if u and u['employee']==VIEWER_EMPLOYEE:return set()
  return {r[0] for r in c.execute('SELECT id FROM users WHERE employee=? AND name=?',(TEST_EMPLOYEE,TEST_NAME))}
@@ -36,8 +38,13 @@ def sanitize(data,ids,names,key=''):
   return result
  return data
 
-def filter_response(c,u,data):
+def filter_response(c,u,data,path=''):
  ids=hidden(c,u)
+ if isinstance(data,dict):
+  data=dict(data)
+  for key in ['ranking','reflex','members','users']:
+   if key=='users' and path=='/api/admin/users' and u['employee']==VIEWER_EMPLOYEE:continue
+   if key in data and isinstance(data[key],list):data[key]=sanitize(data[key],test_ids(c),{TEST_NAME},key)
  names={r[0] for r in c.execute('SELECT name FROM users WHERE employee=? AND name=?',(TEST_EMPLOYEE,TEST_NAME))} if ids else set()
  return sanitize(data,ids,names)
 
@@ -47,6 +54,7 @@ def blocked_mutation(c,u,path,data):
  table=None
  if path.startswith('/api/boards/'):table='posts'
  elif path.startswith('/api/meals/'):table='meals'
+ elif path.startswith('/api/studys/'):table='studys'
  elif path.startswith('/api/reflex/comments/'):table='reflex_comments'
  elif path=='/api/wiki/remove':table='wiki_documents'
  elif path.startswith('/api/admin/'):

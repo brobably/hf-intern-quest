@@ -1,5 +1,6 @@
 import json,os
 import activity
+import privacy
 from urllib.parse import urlsplit,parse_qs,urlencode
 from urllib.request import Request,urlopen
 from urllib.error import URLError
@@ -179,6 +180,7 @@ def post(h,u,d,db):
    members=json.loads(meal['members'])
    if len(members)>=meal['capacity']:h.reply(409,{'error':'정원이 찼습니다.'});return True
    valid={r[0] for r in c.execute("SELECT id FROM users WHERE status='approved'")}
+   valid-=privacy.test_ids(c)
    if any(x not in valid or x==u['id'] for x in recipients):h.reply(400,{'error':'승인된 다른 회원만 초대할 수 있습니다.'});return True
    for recipient in set(recipients)-set(members):c.execute('INSERT OR IGNORE INTO meal_invites(meal_id,user_id) VALUES(?,?)',(mid,recipient))
   h.reply(200,{'ok':True});return True

@@ -43,6 +43,9 @@ def coin_progress(c,uid,p,now):
   group=row['event_key'].split(':')[0]
   if group in earned:earned[group]+=row['amount']
  return [{'key':key,'earned':min(limit,earned[key]),'limit':limit} for key,limit in [('attendance',10),('game',10),('activity',20),('care',4)]]
+for key,item in ITEMS.items():
+ item['price']={'plant':15,'books':25,'lamp':22,'sofa':45,'clock':20,'flowers':18,'cat':24,'stars':25,'desk':40,'pillow':12,'piggy':20,'watering':16,'tea':30,'painting':18,'basket':24,'look-scholar':20,'look-ribbon':18,'look-music':35,'look-cozy':28,'look-star':16,'look-beret':25,'look-bag':30,'look-charm':18}.get(key,20 if item['category']=='color' else 25)
+
 def initialize(c):
  c.execute('CREATE TABLE IF NOT EXISTS intern_pets(user_id INTEGER PRIMARY KEY,data TEXT NOT NULL)')
  c.execute('CREATE TABLE IF NOT EXISTS pet_coin_wallet(user_id INTEGER PRIMARY KEY,balance INTEGER NOT NULL DEFAULT 0)')

@@ -12,6 +12,8 @@ import meals
 import wiki
 import news
 import privacy
+import extras
+import study
 BASE=Path(__file__).resolve().parent
 DATA=Path(os.environ.get('HF_DATA',str(BASE/'data')));DATA.mkdir(exist_ok=True)
 DB=DATA/'accounts.sqlite3'
@@ -32,6 +34,10 @@ with db() as c:
  meals.initialize(c)
  wiki.initialize(c)
  news.initialize(c)
+ extras.initialize(c)
+ study.initialize(c)
+ c.execute("UPDATE user_profiles SET department='' WHERE user_id IN (SELECT id FROM users WHERE employee='1234' AND name='이강인' AND role='admin')")
+ c.execute("UPDATE wiki_documents SET department='공통' WHERE department='kfa' AND user_id IN (SELECT id FROM users WHERE employee='1234' AND name='이강인')")
  # Apply the explicitly requested account promotions once, preserving later role changes.
  c.execute('CREATE TABLE IF NOT EXISTS account_changes(change_key TEXT PRIMARY KEY)')
  if not c.execute('SELECT change_key FROM account_changes WHERE change_key=?',('admin-promotion-20261007',)).fetchone():
@@ -63,7 +69,7 @@ class Handler(SimpleHTTPRequestHandler):
   if self.path.startswith('/api/') and self.path not in ['/api/me','/api/state','/api/attendance','/api/pet'] and not self.path.startswith('/api/pet/'):
    viewer=self.user()
    if viewer:
-    with db() as c:obj=privacy.filter_response(c,viewer,obj)
+    with db() as c:obj=privacy.filter_response(c,viewer,obj,self.path)
   b=json.dumps(obj,ensure_ascii=False).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(b)))
   if cookie:self.send_header('Set-Cookie',cookie)
   self.end_headers();self.wfile.write(b)
@@ -83,6 +89,8 @@ class Handler(SimpleHTTPRequestHandler):
    return self.reply(200,{'user':public(u) if u else None,'setup':setup})
   u=self.user()
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
+  if extras.get(self,u,db):return
+  if study.get(self,u,db):return
   if pet.get(self,u,db):return
   if activity.get(self,u,db):return
   if meals.get(self,u,db):return
@@ -159,6 +167,8 @@ class Handler(SimpleHTTPRequestHandler):
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
   with db() as c:private_block=privacy.blocked_mutation(c,u,path,d)
   if private_block:return self.reply(404,{'error':'요청한 항목을 찾을 수 없습니다.'})
+  if extras.post(self,u,d,db):return
+  if study.post(self,u,d,db):return
   if pet.post(self,u,d,db):return
   if activity.post(self,u,d,db):return
   if news.post(self,u,d,db):return
@@ -168,6 +178,8 @@ class Handler(SimpleHTTPRequestHandler):
    if type(uid)!=int or not isinstance(department,str) or not 1<=len(department.strip())<=80:return self.reply(400,{'error':'회원과 부서를 확인해 주세요.'})
    with db() as c:
     if not c.execute('SELECT id FROM users WHERE id=?',(uid,)).fetchone():return self.reply(404,{'error':'회원이 없습니다.'})
+    target=c.execute('SELECT employee,name,role FROM users WHERE id=?',(uid,)).fetchone()
+    if target['employee']=='1234' and target['name']=='이강인' and target['role']=='admin':return self.reply(400,{'error':'이 관리자 계정에는 부서를 적용하지 않습니다.'})
     c.execute('INSERT OR IGNORE INTO user_profiles(user_id) VALUES(?)',(uid,));c.execute('UPDATE user_profiles SET department=? WHERE user_id=?',(department.strip(),uid))
    return self.reply(200,{'ok':True})
   if meals.post(self,u,d,db):return
@@ -220,7 +232,7 @@ class Handler(SimpleHTTPRequestHandler):
    s=d.get('state');allowed={'tasks','clean','lunch','wiki','best','favorites'}
    if not isinstance(s,dict) or set(s)-allowed:return self.reply(400,{'error':'저장 내용을 확인해 주세요.'})
    if any(not isinstance(s.get(k,[]),list) for k in ['tasks','clean','lunch','wiki']):return self.reply(400,{'error':'저장 형식이 올바르지 않습니다.'})
-   if 'favorites' in s and (not isinstance(s['favorites'],list) or len(s['favorites'])>16 or any(x not in ['','games','pet','manual-ai','glossary','registry-guide','checklist','cleaning','lunch','reflex','wiki','study','articles','jobs','qna','suggestions'] for x in s['favorites'])):return self.reply(400,{'error':'즐겨찾기 목록을 확인해 주세요.'})
+   if 'favorites' in s and (not isinstance(s['favorites'],list) or len(s['favorites'])>20 or any(x not in ['','games','pet','stroop','anonymous','analytics','manual-ai','glossary','registry-guide','checklist','cleaning','lunch','reflex','wiki','study','articles','jobs','qna','suggestions'] for x in s['favorites'])):return self.reply(400,{'error':'즐겨찾기 목록을 확인해 주세요.'})
    with db() as c:
     c.execute('BEGIN IMMEDIATE')
     previous=json.loads(c.execute('SELECT state FROM users WHERE id=?',(u['id'],)).fetchone()[0])
