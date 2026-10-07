@@ -46,6 +46,26 @@ def coin_progress(c,uid,p,now):
 for key,item in ITEMS.items():
  item['price']={'plant':15,'books':25,'lamp':22,'sofa':45,'clock':20,'flowers':18,'cat':24,'stars':25,'desk':40,'pillow':12,'piggy':20,'watering':16,'tea':30,'painting':18,'basket':24,'look-scholar':20,'look-ribbon':18,'look-music':35,'look-cozy':28,'look-star':16,'look-beret':25,'look-bag':30,'look-charm':18}.get(key,20 if item['category']=='color' else 25)
 
+ITEMS['color-blue']={'name':'기본 파랑 보금이','price':0,'category':'color','icon':'','slot':'color'}
+SLOT_NAMES={'head':'머리','eyewear':'얼굴','neckwear':'목','badge':'몸 장식','bag':'가방','charm':'장신구','color':'색상'}
+for key in ['look-ribbon','look-music','look-beret']:ITEMS[key]['slot']='head'
+for key,item in ITEMS.items():
+ if item['category']=='character':item['description']=SLOT_NAMES[item['slot']]+' 소품 · 같은 부위는 하나씩 착용'
+
+def normalize_equipment(p):
+ # Keep the most recently equipped item in each slot; ownership never changes.
+ p['owned']=list(dict.fromkeys(['color-blue']+p.get('owned',[])))
+ selected=[];slots=set()
+ for key in reversed(p.get('equipped',[])):
+  if key not in ITEMS or key in selected:continue
+  slot=ITEMS[key].get('slot')
+  if slot and slot in slots:continue
+  selected.append(key)
+  if slot:slots.add(slot)
+ p['equipped']=list(reversed(selected))
+ if 'color' not in slots:p['equipped'].append('color-blue')
+ return p
+
 def initialize(c):
  c.execute('CREATE TABLE IF NOT EXISTS intern_pets(user_id INTEGER PRIMARY KEY,data TEXT NOT NULL)')
  c.execute('CREATE TABLE IF NOT EXISTS pet_coin_wallet(user_id INTEGER PRIMARY KEY,balance INTEGER NOT NULL DEFAULT 0)')
@@ -70,14 +90,14 @@ def collect(c,uid,p):
   p['coins']+=row['balance'];c.execute('UPDATE pet_coin_wallet SET balance=0 WHERE user_id=?',(uid,))
  return p
 def day(now):return datetime.fromtimestamp(now,ZONE).date().isoformat()
-def initial(name,now):return dict(name=name,growth=0,growth_version=2,coins=0,hunger=75,happy=75,energy=75,hygiene=75,updated=now,last_care=0,reward_day=day(now),rewarded=[],owned=[],equipped=[],history=[])
+def initial(name,now):return dict(name=name,growth=0,growth_version=2,coins=0,hunger=75,happy=75,energy=75,hygiene=75,updated=now,last_care=0,reward_day=day(now),rewarded=[],owned=['color-blue'],equipped=['color-blue'],history=[])
 def settled(data,now):
  p=dict(data);hours=max(0,min(48,(now-p['updated'])/3600))
  if p.get('growth_version',1)<2:p['growth']*=2;p['growth_version']=2
  for key,rate in [('hunger',2),('happy',1),('energy',1),('hygiene',1.5)]:p[key]=max(25,p[key]-hours*rate)
  p['updated']=now
  if p['reward_day']!=day(now):p['reward_day']=day(now);p['rewarded']=[]
- return p
+ return normalize_equipment(p)
 def public(p,now,admin=False):
  p=settled(p,now);stage=max(i for i,(_,goal) in enumerate(STAGES) if p['growth']>=goal)
  return {**p,'admin_shop':admin,'internship_end':INTERNSHIP_END,'stage':stage,'stage_name':STAGES[stage][0],'next_growth':STAGES[stage+1][1] if stage<3 else None,'care_wait':max(0,5-int(now-p['last_care'])),'items':ITEMS,'stages':[{'name':name,'growth':goal} for name,goal in STAGES]}
@@ -86,7 +106,7 @@ def get(h,u,db):
  with db() as c:
   c.execute('BEGIN IMMEDIATE');row=c.execute('SELECT data FROM intern_pets WHERE user_id=?',(u['id'],)).fetchone()
   if row:
-   p=collect(c,u['id'],json.loads(row['data']));c.execute('UPDATE intern_pets SET data=? WHERE user_id=?',(json.dumps(p,ensure_ascii=False),u['id']))
+   p=collect(c,u['id'],settled(json.loads(row['data']),time.time()));c.execute('UPDATE intern_pets SET data=? WHERE user_id=?',(json.dumps(p,ensure_ascii=False),u['id']))
   rewards=[dict(r) for r in c.execute('SELECT event_key,day,amount FROM pet_coin_rewards WHERE user_id=? ORDER BY day DESC,event_key LIMIT 12',(u['id'],))]
   progress=coin_progress(c,u['id'],p,time.time()) if row else []
  h.reply(200,{'pet':{**public(p,time.time(),u['role']=='admin'),'coin_history':rewards,'coin_progress':progress} if row else None});return True
@@ -100,13 +120,15 @@ def post(h,u,d,db):
    name=d.get('name','보금이')
    if not isinstance(name,str) or not 1<=len(name.strip())<=12:h.reply(400,{'error':'이름은 1~12자로 입력해 주세요.'});return True
    color=d.get('color','')
-   if not isinstance(color,str) or color not in ['', 'color-mint','color-pink','color-lavender','color-sunset']:h.reply(400,{'error':'보금이 색상을 선택해 주세요.'});return True
+   if not isinstance(color,str) or color not in ['', 'color-blue','color-mint','color-pink','color-lavender','color-sunset']:h.reply(400,{'error':'보금이 색상을 선택해 주세요.'});return True
    p=collect(c,u['id'],initial(name.strip(),now))
    if color:p['owned'].append(color);p['equipped'].append(color)
+   normalize_equipment(p)
    c.execute('INSERT INTO intern_pets(user_id,data) VALUES(?,?)',(u['id'],json.dumps(p,ensure_ascii=False)));message='우리의 첫 보금자리가 생겼어요!'
   else:
    if not row:h.reply(404,{'error':'먼저 보금이를 맞이해 주세요.'});return True
    p=collect(c,u['id'],settled(json.loads(row['data']),now))
+   normalize_equipment(p)
    c.execute('UPDATE intern_pets SET data=? WHERE user_id=?',(json.dumps(p,ensure_ascii=False),u['id']))
    if h.path=='/api/pet/care':
     action=d.get('action')
@@ -148,6 +170,7 @@ def post(h,u,d,db):
     slot=ITEMS[item].get('slot')
     if slot and item in p['equipped']:
      p['equipped']=[key for key in p['equipped'] if key==item or ITEMS.get(key,{}).get('slot')!=slot]
+   normalize_equipment(p)
    c.execute('UPDATE intern_pets SET data=? WHERE user_id=?',(json.dumps(p,ensure_ascii=False),u['id']))
  with db() as c:progress=coin_progress(c,u['id'],p,now)
  h.reply(200,{'pet':{**public(p,now,u['role']=='admin'),'coin_progress':progress},'message':message});return True
