@@ -212,11 +212,11 @@ class Handler(SimpleHTTPRequestHandler):
    with db() as c:
     c.execute('BEGIN IMMEDIATE')
     previous=json.loads(c.execute('SELECT state FROM users WHERE id=?',(u['id'],)).fetchone()[0])
-    old={t[0]:bool(t[1]) and (len(t)<5 or t[3]!='daily' or t[4]==activity.today()) for t in previous.get('tasks',[]) if isinstance(t,list) and len(t)>=2}
+    old={t[0]:bool(t[1]) and (len(t)<5 or not (t[3]=='daily' or isinstance(t[3],list) and len(t[3])>0) or t[4]==activity.today()) for t in previous.get('tasks',[]) if isinstance(t,list) and len(t)>=2}
     for t in s.get('tasks',[]):
      if not isinstance(t,list) or len(t) not in (3,5) or not isinstance(t[0],str) or len(t[0])>150 or type(t[1])!=bool:return self.reply(400,{'error':'업무 형식을 확인하세요.'})
-     if len(t)==5 and (t[3] not in ['daily','occasional'] or not isinstance(t[4],str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}',t[4])):return self.reply(400,{'error':'업무 구분을 확인해 주세요.'})
-     if t[1] and (len(t)<5 or t[3]!='daily' or t[4]==activity.today()) and not old.get(t[0],False):
+     if len(t)==5 and (not (t[3] in ['daily','occasional'] or isinstance(t[3],list) and len(t[3])<=5 and all(type(day)==int and 1<=day<=5 for day in t[3]) and len(set(t[3]))==len(t[3])) or not isinstance(t[4],str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}',t[4])):return self.reply(400,{'error':'업무 구분을 확인해 주세요.'})
+     if t[1] and (len(t)<5 or not (t[3]=='daily' or isinstance(t[3],list) and len(t[3])>0) or t[4]==activity.today()) and not old.get(t[0],False):
       count=c.execute("SELECT COUNT(*) FROM points WHERE user_id=? AND day=? AND event_key LIKE 'task:%'",(u['id'],activity.today())).fetchone()[0]
       if count<5:activity.award(c,u['id'],'task:'+activity.today()+':'+hashlib.sha256(t[0].encode()).hexdigest(),5)
     c.execute('UPDATE users SET state=? WHERE id=?',(json.dumps(s,ensure_ascii=False),u['id']))
