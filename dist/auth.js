@@ -43,3 +43,11 @@ async function refreshApprovalNotice(){
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshApprovalNotice()});
 
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-department-save]');if(!b)return;b.disabled=true;try{await api('/api/admin/department',{id:Number(b.dataset.departmentSave),department:b.closest('label').querySelector('input').value});await showAdmin();loadActivity();}catch(error){document.querySelector('#admin-message').textContent=error.message;b.disabled=false;}});
+// Dismiss any modal only when the gesture starts and ends on its backdrop.
+(()=>{
+ let backdropDialog=null;
+ const outside=(dialog,event)=>{const r=dialog.getBoundingClientRect();return event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom;};
+ document.addEventListener('pointerdown',event=>{const dialog=event.target;backdropDialog=dialog instanceof HTMLDialogElement&&dialog.open&&outside(dialog,event)?dialog:null;},true);
+ document.addEventListener('pointercancel',()=>{backdropDialog=null;},true);
+ document.addEventListener('click',event=>{const dialog=backdropDialog;backdropDialog=null;if(dialog&&event.target===dialog&&dialog.open&&outside(dialog,event)){event.preventDefault();event.stopImmediatePropagation();dialog.close();}},true);
+})();
