@@ -23,10 +23,10 @@ ITEMS={
  'rug-pink':{'name':'딸기 우유 러그','price':15,'category':'room','icon':'🩷','slot':'rug'},
  'rug-mint':{'name':'민트 구름 러그','price':15,'category':'room','icon':'🟢','slot':'rug'},
  'floor-white':{'name':'화이트 우드 바닥','price':25,'category':'room','icon':'🪵','slot':'floor'},
- 'look-scholar':{'name':'똑똑이 보금이','price':20,'category':'character','icon':'👓','slot':'look','description':'동그란 안경을 쓴 공부 친구'},
- 'look-ribbon':{'name':'리본 보금이','price':20,'category':'character','icon':'🎀','slot':'look','description':'분홍 리본을 단 다정한 친구'},
- 'look-music':{'name':'멜로디 보금이','price':30,'category':'character','icon':'🎧','slot':'look','description':'헤드폰을 쓴 음악 친구'},
- 'look-cozy':{'name':'포근 보금이','price':25,'category':'character','icon':'🧣','slot':'look','description':'따뜻한 목도리를 두른 친구'}
+ 'look-scholar':{'name':'똑똑이 보금이','price':20,'category':'character','icon':'👓','slot':'eyewear','description':'동그란 안경 · 다른 소품과 함께 착용 가능'},
+ 'look-ribbon':{'name':'리본 보금이','price':20,'category':'character','icon':'🎀','slot':'hairwear','description':'분홍 리본 · 다른 소품과 함께 착용 가능'},
+ 'look-music':{'name':'멜로디 보금이','price':30,'category':'character','icon':'🎧','slot':'earwear','description':'헤드폰 · 다른 소품과 함께 착용 가능'},
+ 'look-cozy':{'name':'포근 보금이','price':25,'category':'character','icon':'🧣','slot':'neckwear','description':'포근한 목도리 · 다른 소품과 함께 착용 가능'}
 }
 ACTIONS={'feed':('밥 먹기',{'hunger':25,'happy':5}),'rest':('쉬기',{'energy':30}),'clean':('방 청소',{'hygiene':30,'happy':5}),'study':('함께 공부',{'happy':15,'energy':-10,'hunger':-5})}
 def initialize(c):
