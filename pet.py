@@ -47,10 +47,14 @@ for key,item in ITEMS.items():
  item['price']={'plant':15,'books':25,'lamp':22,'sofa':45,'clock':20,'flowers':18,'cat':24,'stars':25,'desk':40,'pillow':12,'piggy':20,'watering':16,'tea':30,'painting':18,'basket':24,'look-scholar':20,'look-ribbon':18,'look-music':35,'look-cozy':28,'look-star':16,'look-beret':25,'look-bag':30,'look-charm':18}.get(key,20 if item['category']=='color' else 25)
 
 ITEMS['color-blue']={'name':'기본 파랑 보금이','price':0,'category':'color','icon':'','slot':'color'}
-SLOT_NAMES={'head':'머리','eyewear':'얼굴','neckwear':'목','badge':'몸 장식','bag':'가방','charm':'장신구','color':'색상'}
-for key in ['look-ribbon','look-music','look-beret']:ITEMS[key]['slot']='head'
+ITEMS['look-star']['name']='별빛 지붕 핀'
+SLOT_NAMES={'head':'머리','eyewear':'얼굴','body':'몸통·손','color':'색상'}
+for key in ['look-ribbon','look-music','look-beret','look-star']:ITEMS[key]['slot']='head'
+for key in ['look-cozy','look-bag','look-charm']:ITEMS[key]['slot']='body'
 for key,item in ITEMS.items():
- if item['category']=='character':item['description']=SLOT_NAMES[item['slot']]+' 소품 · 같은 부위는 하나씩 착용'
+ if item['category']=='character':
+  item['description']=SLOT_NAMES[item['slot']]+' 착용 · 같은 부위는 하나씩'
+  item['equipment_region']=SLOT_NAMES[item['slot']]
 
 def normalize_equipment(p):
  # Keep the most recently equipped item in each slot; ownership never changes.
@@ -166,7 +170,7 @@ def post(h,u,d,db):
      message='장착을 해제했어요. 아이템은 소장함에 남아 있어요.'
     else:
      if item not in p['equipped']:p['equipped'].append(item)
-     message='아이템을 장착했어요!'
+     message=(SLOT_NAMES.get(ITEMS[item].get('slot'),'아이템')+'에 '+ITEMS[item]['name']+' 착용 완료! 같은 부위의 기존 소품은 소장함에 보관돼요.')
     slot=ITEMS[item].get('slot')
     if slot and item in p['equipped']:
      p['equipped']=[key for key in p['equipped'] if key==item or ITEMS.get(key,{}).get('slot')!=slot]
