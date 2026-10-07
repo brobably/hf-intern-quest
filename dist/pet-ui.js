@@ -1,44 +1,66 @@
 let petState=null,petLoaded=false,petLoading=false,petBusy=false,petMessage='',petWaitUntil=0,petShopCategory='character';
 let petInteraction=null;
 const petPalettes={'color-mint':'#81b8a6','color-pink':'#dba5b2','color-lavender':'#aaa0ce','color-sunset':'#dda87c'};
-const paletteDefs=document.createElementNS('http://www.w3.org/2000/svg','svg');paletteDefs.setAttribute('class','pet-palette-defs');paletteDefs.setAttribute('aria-hidden','true');paletteDefs.innerHTML='<defs>'+Object.entries(petPalettes).map(([key,tone])=>`<filter id="pet-${key}" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4 0 4 0 -.15" result="rawBlueMask"/><feComposite in="rawBlueMask" in2="SourceAlpha" operator="in" result="blueMask"/><feFlood flood-color="${tone}" result="tone"/><feComposite in="tone" in2="blueMask" operator="in" result="tinted"/><feBlend in="tinted" in2="SourceGraphic" mode="color"/></filter>`).join('')+'</defs>';document.body.append(paletteDefs);
+const paletteDefs=document.createElementNS('http://www.w3.org/2000/svg','svg');paletteDefs.setAttribute('class','pet-palette-defs');paletteDefs.setAttribute('aria-hidden','true');paletteDefs.innerHTML='<defs>'+Object.entries(petPalettes).map(([key,tone])=>`<filter id="pet-${key}" color-interpolation-filters="sRGB"><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -8 8 0 0 -.15" result="greenMask"/><feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -8 8 0 -.15" result="blueDifference"/><feComposite in="greenMask" in2="blueDifference" operator="arithmetic" k1="1" result="rawBlueMask"/><feComposite in="rawBlueMask" in2="SourceAlpha" operator="in" result="blueMask"/><feFlood flood-color="${tone}" result="tone"/><feComposite in="tone" in2="blueMask" operator="in" result="tinted"/><feBlend in="tinted" in2="SourceGraphic" mode="color"/></filter>`).join('')+'</defs>';document.body.append(paletteDefs);
 const petStageNames=['새싹집','아기 보금이','인턴 보금이','든든한 보금이'];
 const petActionNames={feed:['🍚','밥 먹기','든든하게 한 끼'],rest:['🌙','쉬기','포근한 낮잠'],clean:['🧹','방 청소','보금자리 반짝'],study:['📖','함께 공부','인턴의 한 걸음']};
 async function petRequest(path='',data){const r=await fetch('/api/pet'+path,{credentials:'same-origin',...(data?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}:{})});const result=await r.json();if(!r.ok)throw Error(result.error||'보금이를 불러오지 못했어요.');return result;}
 async function loadPet(){if(petLoading||petInteraction)return;petLoading=true;try{const d=await petRequest();petState=d.pet;petLoaded=true;petWaitUntil=Date.now()+Number(d.pet?.care_wait||0)*1000;if(location.hash==='#pet')renderPetPage();}catch(error){if(location.hash==='#pet'){const app=document.querySelector('#pet-app');if(app)app.innerHTML='<p class="pet-notice" role="alert">'+esc(error.message)+'</p><button class="primary" id="pet-retry">다시 불러오기</button>';}}finally{petLoading=false;}}
-function petSprite(stage,extra=''){return `<div class="bogeumi-sprite stage-${stage} ${extra}" role="img" aria-label="${petStageNames[stage]} 캐릭터"></div>`;}
 const petLookLabels={'look-scholar':'안경','look-ribbon':'리본','look-music':'헤드폰','look-cozy':'목도리','look-star':'별 브로치','look-beret':'베레모','look-bag':'가방','look-charm':'열쇠고리'};
+const petWardrobeKeys=['','look-scholar','look-ribbon','look-music','look-cozy','look-star','look-beret','look-bag','look-charm'];
+// Each growth stage has its own painted, physically fitted outfit frames.
+function petWardrobeFrame(stage,key='',extra=''){
+ const index=Math.max(0,petWardrobeKeys.indexOf(key));
+ return `<span class="pet-wardrobe-frame ${extra}" style="--pet-sheet:url('bogeumi-wardrobe-${stage}.png');background-position:${index%3*50}% ${Math.floor(index/3)*50}%" aria-hidden="true"></span>`;
+}
+function petSprite(stage,extra=''){return `<div class="bogeumi-sprite pet-stage-sprite ${extra}" role="img" aria-label="${petStageNames[stage]} 캐릭터">${petWardrobeFrame(stage)}</div>`;}
 function petAvatar(stage,look='',color=''){
  const looks=[...new Set((Array.isArray(look)?look:[look]).filter(key=>petLookLabels[key]))];
- return `<div class="pet-avatar ${color}" role="img" aria-label="${petStageNames[stage]}">${petSprite(stage)}${petFace(stage,'')}${petNewWearables(stage,'',looks)}</div>`;
+ const layers=looks.slice().sort((a,b)=>petWearOrder.indexOf(a)-petWearOrder.indexOf(b)).map(key=>petWearLayer(stage,key)).join('');
+ const paws=looks.some(key=>['look-cozy','look-bag'].includes(key))?`<span class="pet-front-paws" style="clip-path:url(#pet-paws-${stage})">${petWardrobeFrame(stage)}</span>`:'';
+ return `<div class="pet-avatar pet-painted-avatar ${color}" data-pet-stage="${stage}" role="img" aria-label="${petStageNames[stage]}${looks.length?' · '+looks.map(key=>petLookLabels[key]).join(', '):''}">${petWardrobeFrame(stage)}${petWardrobeFrame(stage,'','pet-roof-tint')}${petFace(stage,'')}${layers}${paws}</div>`;
 }
-function petExtraLooks(stage,primary,looks){
- if(looks.length<2)return '';
- const [left,right,y]=petLandmarks(stage,primary),mid=(left+right)/2,half=(right-left)/2;
- let layers='';
- if(looks.includes('look-music')&&primary!=='look-music'){
-  const earLeft=left-21,earRight=right+23;
-  layers+=`<g class="pet-headphones"><path d="M${earLeft} ${y-1} C${earLeft-1} ${y-54} ${earRight+1} ${y-54} ${earRight} ${y-1}" fill="none" stroke="#858eb3" stroke-width="4.8"/><path d="M${earLeft} ${y-2} C${earLeft} ${y-51} ${earRight} ${y-51} ${earRight} ${y-2}" fill="none" stroke="url(#pet-gear-blue)" stroke-width="3"/><rect x="${earLeft-3.7}" y="${y-5}" width="7.4" height="12" rx="3" fill="url(#pet-gear-blue)" stroke="#808cac" stroke-width=".6"/><rect x="${earRight-3.7}" y="${y-5}" width="7.4" height="12" rx="3" fill="url(#pet-gear-blue)" stroke="#808cac" stroke-width=".6"/><path d="M${earLeft-2} ${y-3} v7 M${earRight-2} ${y-3} v7" stroke="#e8eaf7" stroke-width="1" stroke-linecap="round"/></g>`;
- }
- if(looks.includes('look-scholar')&&primary!=='look-scholar'){
-  const radius=Math.min(6,half*.58);
-  layers+=`<g class="pet-glasses" fill="none" stroke-linecap="round"><path d="M${left+radius} ${y} Q${mid} ${y-2} ${right-radius} ${y} M${left-radius} ${y-1} l-3 -1 M${right+radius} ${y-1} l3 -1" stroke="#737f93" stroke-width="1.3"/><circle cx="${left}" cy="${y}" r="${radius}" stroke="#59687e" stroke-width="1.7"/><circle cx="${right}" cy="${y}" r="${radius}" stroke="#59687e" stroke-width="1.7"/><path d="M${left-radius+1} ${y-2} Q${left-2} ${y-radius+1} ${left+1} ${y-radius+1} M${right-radius+1} ${y-2} Q${right-2} ${y-radius+1} ${right+1} ${y-radius+1}" stroke="#d1ddeb" stroke-width=".8"/></g>`;
- }
- if(looks.includes('look-ribbon')&&primary!=='look-ribbon'){
-  layers+=`<g class="pet-ribbon" transform="translate(${mid+half*.8} ${y-22}) rotate(16)"><path d="M0 0 C-8 -9 -12 -6 -9 2 C-7 6 -3 4 0 0 C8 -9 12 -6 9 2 C7 6 3 4 0 0" fill="url(#pet-gear-pink)" stroke="#c17d98" stroke-width=".5"/><path d="M-2 1 l-3 9 4 -2 2 2 1 -9 M2 1 l3 9 -4 -2 -2 2 -1 -9" fill="#dfa0b5"/><ellipse rx="2.5" ry="3" fill="url(#pet-gear-pink)"/><path d="M-7 -3 l4 2 M7 -3 l-4 2" stroke="#f6d9e2" stroke-width=".8" stroke-linecap="round"/></g>`;
- }
- return `<svg class="pet-extra-looks" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="pet-gear-blue" x2="1" y2="1"><stop stop-color="#e3e8fa"/><stop offset=".5" stop-color="#b1bedc"/><stop offset="1" stop-color="#8594bb"/></linearGradient><linearGradient id="pet-gear-pink" x2="0" y2="1"><stop stop-color="#f5c9d9"/><stop offset=".5" stop-color="#e6a8c1"/><stop offset="1" stop-color="#ce85a4"/></linearGradient></defs>${layers}</svg>`;
+const petWearOrder=['look-charm','look-cozy','look-bag','look-star','look-music','look-beret','look-ribbon','look-scholar'];
+const petWearFit={
+ 'look-scholar':[[.74,1,-1,48,62],[.75,2,1,47,60],[.61,5,-7,47,59],[.65,5,-10,47,61]],
+ 'look-music':[[.89,-1,-7,50,51],[.89,0,-2,50,40],[.88,2,-4,50,43],[.88,2,-7,50,43]],
+ 'look-ribbon':[[.88,-5,-1,76,35],[.88,-3,0,76,28],[.85,-4,-3,75,36],[.78,-2,-8,75,45]],
+ 'look-cozy':[[.87,-2,1,49,72],[.88,0,4,49,66],[.88,2,0,49,64],[.87,2,-3,49,64]],
+ 'look-star':[[.8,-7,4,76,34],[.8,-3,3,68,26],[.75,-3,1,70,46],[.85,3,1,60,51]],
+ 'look-beret':[[.85,1,-1,35,25],[.88,1,1,34,24],[.8,3,-8,39,29],[.75,6,-12,40,36]],
+ 'look-bag':[[.92,1,0,48,68],[.91,1,-3,47,74],[.88,3,-2,49,70],[.9,2,-4,50,61]],
+ 'look-charm':[[.72,-13,-1,42,60],[.72,1,-1,21,72],[.7,-10,0,40,57],[.7,-7,0,36,59]]
+};
+// Source alpha bounds exclude neighbouring atlas cells; target bounds follow anatomy.
+const petWearBounds={
+ 'look-scholar':[[13.4,51,89.5,73.2],[10,48.8,89.7,71.8],[9.8,45.9,92.3,72],[14.1,49,85.6,73.4]],
+ 'look-ribbon':[[52.2,20.6,93.8,55.7],[51,12.7,91.9,48.1],[45,15.3,89.7,59.3],[39.7,20.1,87.6,67.2]],
+ 'look-music':[[9.3,15.6,99.5,72.7],[6,8.4,99,59.8],[6.9,12.7,99.3,66],[7.9,15.8,96.2,67.9]],
+ 'look-cozy':[[12,50.5,98.6,91.1],[13.4,48.8,91.1,89],[14,47.8,91.6,89.2],[15.6,47.6,98.1,89]],
+ 'look-star':[[65,23.4,90.9,51],[59.1,15.6,81.6,38.3],[62.9,36.8,82.5,56],[54.5,45.9,71.5,62.7]],
+ 'look-beret':[[13.6,7.4,69.4,46.4],[12.2,2.6,65.1,39.7],[11.7,6.5,72.7,51],[11.5,17,73.4,63.4]],
+ 'look-bag':[[14.8,34.2,93.5,76.3],[11.5,41.9,92.3,83.5],[12.2,31.6,95.7,80.6],[17.5,24.4,94.7,70.8]],
+ 'look-charm':[[31.8,51.2,52.9,80.1],[14.1,56.7,33.7,86.6],[32.8,42.8,55.5,76.8],[29.9,45.9,49.3,73.2]]
+};
+const petWearTargets={
+ 'look-ribbon':[[64,10,92,35],[64,10,92,35],[65,7,92,35],[63,7,91,34]],
+ 'look-cozy':[[17,62,91,96],[17,63,91,96],[23,60,92,91],[24,59,92,91]],
+ 'look-star':[[75,34,86,46],[75,34,86,46],[76,59,87,71],[74,68,86,80]],
+ 'look-beret':[[9,5,63,39],[9,5,63,39],[10,1,62,36],[10,1,62,36]],
+ 'look-bag':[[18,66,94,94],[18,66,94,94],[23,60,94,88],[23,60,94,88]],
+ 'look-charm':[[21,76,35,94],[21,76,35,94],[26,74,40,92],[27,76,41,94]]
+};
+function petWearLayer(stage,key){
+ const i=petWardrobeKeys.indexOf(key),b=petWearBounds[key][stage],ox=(b[0]+b[2])/2,oy=(b[1]+b[3])/2;
+ let sx,sy,x,y;
+ if(petWearTargets[key]){const t=petWearTargets[key][stage];sx=(t[2]-t[0])/(b[2]-b[0]);sy=(t[3]-t[1])/(b[3]-b[1]);x=(t[0]+t[2])/2-ox;y=(t[1]+t[3])/2-oy;}
+ else{const fit=petWearFit[key][stage];sx=sy=fit[0];x=fit[1];y=fit[2];}
+ const clip=`inset(${Math.max(0,b[1]-2)}% ${Math.max(0,98-b[2])}% ${Math.max(0,98-b[3])}% ${Math.max(0,b[0]-2)}%)`;
+ return `<span class="pet-worn-art" data-wear="${key}" style="--pet-sheet:url('bogeumi-wear-${stage}.png');background-position:${i%3*50}% ${Math.floor(i/3)*50}%;clip-path:${clip};transform-origin:${ox}% ${oy}%;transform:translate(${x}%,${y}%) scale(${sx},${sy})" aria-hidden="true"></span>`;
 }
-function petLandmarks(stage,look){
- const base=[[46.6,61,65],[30,48,57],[46,62,49],[30,48,38]];
- const rows={
-  'look-scholar':[[42,61,68.5],[31.5,55,55],[34,57.5,52],[35,59,49.5]],
-  'look-ribbon':[[42,61,69.5],[31.5,55,55.5],[34,57.5,53],[35,59,49]],
-  'look-music':[[42,61,70],[31.5,55,59.5],[34,57.5,55.5],[35,59,51.5]],
-  'look-cozy':[[42,61,59.5],[31.5,55,50],[34.5,57.5,47.5],[35,59,45]]
- };
- return (rows[look]||base)[stage];
-}
+const petPawShapes=[[[.33,.79,.061,.058],[.65,.79,.061,.058]],[[.33,.8,.067,.065],[.65,.8,.067,.065]],[[.21,.72,.058,.075],[.84,.64,.06,.067]],[[.19,.72,.044,.055],[.81,.79,.046,.057]]];
+paletteDefs.querySelector('defs').insertAdjacentHTML('beforeend',petPawShapes.map((paws,stage)=>`<clipPath id="pet-paws-${stage}" clipPathUnits="objectBoundingBox">${paws.map(([cx,cy,rx,ry])=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"/>`).join('')}</clipPath>`).join(''));
+function petLandmarks(stage){return [[37.6,61,61],[37.6,60.3,62],[41.3,62.7,52],[40.1,61.2,51]][stage];}
 function petFace(stage,look){
  const [left,right,y]=petLandmarks(stage,look),radius=look==='look-scholar'?3.1:3.5;
  const eyes=(smile)=>[left,right].map(x=>`<ellipse cx="${x}" cy="${y}" rx="${radius}" ry="4.3" fill="url(#pet-skin-${stage}-${look||'base'})"/><path d="M${x-2.5} ${y+.5} Q${x} ${y+(smile?-3.8:1.7)} ${x+2.5} ${y+.5}" fill="none" stroke="#36304b" stroke-width="1.2" stroke-linecap="round"/>`).join('');
@@ -46,12 +68,11 @@ function petFace(stage,look){
 }
 const petAtlasKeys=['plant','books','lamp','sofa','clock','flowers','cat','stars','desk','pillow','piggy','watering','tea','painting','basket','look-scholar','look-ribbon','look-music','look-cozy','look-star','look-beret','look-bag','look-charm','food','book'];
 function petProp(key,extra=''){const i=petAtlasKeys.indexOf(key);return `<span class="pet-prop ${extra}" style="background-position:${i%5*25}% ${[2.5,29,54,79,100][Math.floor(i/5)]}%" aria-hidden="true"></span>`;}
-function petNewWearables(stage,primary,looks){const [left,right,y]=petLandmarks(stage,primary),mid=(left+right)/2;return (looks.includes('look-music')?`<span class="pet-new-wearable pet-headset-band" style="left:${mid}%;top:${y-4}%;width:80%">${petProp('look-music')}</span><span class="pet-new-wearable pet-headset-left" style="left:${mid-22}%;top:${y-7}%;width:40%">${petProp('look-music')}</span><span class="pet-new-wearable pet-headset-right" style="left:${mid+22}%;top:${y-7}%;width:40%">${petProp('look-music')}</span>`:'')+[['look-scholar',mid,y,34],['look-ribbon',mid+17,y-30,23],['look-cozy',mid+2,y+25,35],['look-star',mid+11,y+19,12],['look-beret',mid-4,y-32,35],['look-bag',mid+23,y+18,26],['look-charm',mid-20,y+19,13]].filter(([key])=>looks.includes(key)).map(([key,x,top,size])=>`<span class="pet-new-wearable" style="left:${x}%;top:${top}%;width:${size}%">${petProp(key)}</span>`).join('');}
 function petRoom(p){const roomClasses=p.equipped.filter(k=>k.startsWith('wall-')||k.startsWith('rug-')||k.startsWith('floor-')).join(' ');const looks=p.equipped.filter(k=>k.startsWith('look-'));const color=p.equipped.find(k=>k.startsWith('color-'))||'';
  const places={plant:[8,75,17],books:[87,61,24],lamp:[8,47,18],sofa:[85,83,29],clock:[88,27,13],flowers:[18,59,14],cat:[24,83,14],stars:[45,17,32],desk:[88,74,28],pillow:[72,87,16],piggy:[12,87,14],watering:[30,89,12],tea:[15,80,22],painting:[76,26,20],basket:[91,90,17]};
  return `<div class="pet-room ${roomClasses} ${p.energy<45?'pet-room-sleepy':''}" aria-label="${esc(p.name)}의 방"><div class="pet-room-wall"><div class="pet-window"><span class="pet-sun"></span><span class="pet-cloud"></span></div><div class="pet-wall-frame">HOME<br><small>작은 오늘, 든든한 내일</small></div></div><div class="pet-floor"></div><div class="pet-rug"></div>${p.equipped.filter(k=>places[k]).map(k=>{const [x,y,w]=places[k];return `<div class="pet-room-prop" style="left:${x}%;top:${y}%;width:${w}%" aria-label="${esc(p.items[k].name)}">${petProp(k)}</div>`;}).join('')}<div class="pet-room-label">${esc(p.name)}의 보금자리</div><button type="button" class="pet-character" aria-label="보금이 쓰다듬기" title="마우스로 살살 쓰다듬어 주세요">${petAvatar(p.stage,looks,color)}<span class="pet-stroke-hearts" aria-hidden="true">♥ ♡ ♥</span><span class="pet-shadow"></span></button><div class="pet-play-layer"></div></div>`;
 }
-function petItemPreview(p,key,item){if(petAtlasKeys.includes(key))return petProp(key,'pet-shop-prop');if(item.category==='color')return `<div class="pet-look-preview">${petAvatar(p.stage,'',key)}</div>`;return `<span class="pet-room-swatch ${key}" aria-hidden="true"></span>`;}
+function petItemPreview(p,key,item){if(petLookLabels[key])return `<div class="pet-look-preview">${petAvatar(p.stage,key,p.equipped.find(k=>k.startsWith('color-'))||'')}</div>`;if(petAtlasKeys.includes(key))return petProp(key,'pet-shop-prop');if(item.category==='color')return `<div class="pet-look-preview">${petAvatar(p.stage,'',key)}</div>`;return `<span class="pet-room-swatch ${key}" aria-hidden="true"></span>`;}
 function petCoinGuide(p){const labels={attendance:['오늘의 출석','하루 10 코인'],game:['놀이터 게임 완료','하루 10 코인'],activity:['업무 · 청소 · 함께 식사','XP 2당 1 코인 · 하루 최대 20'],care:['보금이 돌보기','네 가지 돌봄 · 하루 최대 4']};return `<section class="panel pet-coin-guide"><h2>보금 코인 모으기</h2><div>${(p.coin_progress||[]).map(({key,earned,limit})=>{const percent=Math.round(earned/limit*100);return `<div class="pet-coin-progress ${percent===100?'is-complete':''}" role="progressbar" aria-label="${labels[key][0]}" aria-valuemin="0" aria-valuemax="${limit}" aria-valuenow="${earned}"><i style="width:${percent}%"></i><div><span>${labels[key][0]}</span><strong>${percent===100?'✓ 완료':percent+'%'} · ${earned}/${limit} 코인</strong><small>${labels[key][1]}</small></div></div>`;}).join('')}</div><p>오늘 받은 보상으로 표시해요. 코인을 사용해도 달성률은 유지됩니다.</p></section>`;}
 function petMood(p){if(p.hunger<45)return '배가 조금 고파요. 같이 밥 먹을까요?';if(p.energy<45)return '잠깐 쉬면서 충전하고 싶어요.';if(p.hygiene<45)return '방을 함께 정리해 볼까요?';return ['오늘부터 우리 함께 지내요!','여기가 내 보금자리예요.','사원증을 달았어요! 같이 공부해요.','든든한 친구가 되어 줄게요.'][p.stage];}
 function renderPetPage(){

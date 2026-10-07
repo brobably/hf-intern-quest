@@ -268,3 +268,19 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 #reflex-comment-form .primary,.reflex-reply-form .primary{width:fit-content!important;min-height:36px;padding:8px 16px;font-size:14px;align-self:flex-start;justify-self:start}#reflex-comment-form,.reflex-reply-form{align-items:stretch}.pet-avatar>.bogeumi-sprite{z-index:1}.pet-headset-band{z-index:0;clip-path:inset(0 0 57% 0)}.pet-headset-left{clip-path:inset(37% 50% 0 0)}.pet-headset-right{clip-path:inset(37% 0 0 50%)}
 
 #extra-dialog{width:min(600px,calc(100vw - 32px));max-height:85vh;overflow:auto;padding:24px;border:0;border-radius:16px}#extra-dialog::backdrop{background:#153e5e55}.study-card details p{white-space:pre-wrap;font-size:13px;padding:12px;background:#f3f7fb}
+
+/* Stage-specific complete outfit paintings replace generic floating equipment. */
+.pet-wardrobe-frame{position:absolute;inset:0;display:block;background-image:var(--pet-sheet);background-size:300% 300%;background-repeat:no-repeat;pointer-events:none}
+.bogeumi-sprite.pet-stage-sprite{position:relative;background:none!important;overflow:visible}
+.pet-painted-avatar>.pet-wardrobe-frame,.pet-wardrobe-layer{position:absolute;inset:0;z-index:1;pointer-events:none}
+.pet-wardrobe-layer{z-index:4}.pet-painted-avatar .pet-face{z-index:5}
+.pet-roof-tint{display:none;clip-path:polygon(0 0,100% 0,100% 58%,77% 42%,51% 17%,23% 42%,0 58%)}
+.pet-painted-avatar.color-mint .pet-roof-tint{display:block;filter:url(#pet-color-mint)}
+.pet-painted-avatar.color-pink .pet-roof-tint{display:block;filter:url(#pet-color-pink)}
+.pet-painted-avatar.color-lavender .pet-roof-tint{display:block;filter:url(#pet-color-lavender)}
+.pet-painted-avatar.color-sunset .pet-roof-tint{display:block;filter:url(#pet-color-sunset)}
+.pet-look-preview{width:130px;height:130px;max-width:100%;margin:auto}
+.pet-painted-avatar{isolation:isolate}
+
+.pet-worn-art{position:absolute;inset:0;display:block;background-image:var(--pet-sheet);background-size:300% 300%;background-repeat:no-repeat;z-index:6;pointer-events:none}
+.pet-front-paws{position:absolute;inset:0;z-index:8;pointer-events:none}.pet-painted-avatar .pet-face{z-index:5}
