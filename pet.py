@@ -29,6 +29,20 @@ ITEMS={
  'look-cozy':{'name':'포근 보금이','price':25,'category':'character','icon':'🧣','slot':'neckwear','description':'포근한 목도리 · 다른 소품과 함께 착용 가능'}
 }
 ACTIONS={'feed':('밥 먹기',{'hunger':25,'happy':5}),'rest':('쉬기',{'energy':30}),'clean':('방 청소',{'hygiene':30,'happy':5}),'study':('함께 공부',{'happy':15,'energy':-10,'hunger':-5})}
+for key,price in {'plant':5,'books':10,'lamp':8,'sofa':18,'clock':7,'flowers':6,'cat':8,'stars':7,'look-scholar':8,'look-ribbon':6,'look-music':12,'look-cozy':10}.items():ITEMS[key]['price']=price
+for key,item in ITEMS.items():
+ if item['category'] in ['color','room']:item['price']=10 if item['category']=='color' else 12
+for key,name,price in [('desk','인턴 공부 책상',15),('pillow','구름 쿠션',5),('piggy','보금 저금통',7),('watering','민트 물뿌리개',5),('tea','작은 티 테이블',10),('painting','우리 집 액자',6),('basket','포근한 수납 바구니',8)]:
+ ITEMS[key]={'name':name,'price':price,'category':'furniture','icon':''}
+for key,name,price,slot in [('look-star','별빛 브로치',5,'badge'),('look-beret','민트 베레모',10,'hat'),('look-bag','인턴 가방',12,'bag'),('look-charm','보금 열쇠고리',6,'charm')]:
+ ITEMS[key]={'name':name,'price':price,'category':'character','icon':'','slot':slot,'description':'다른 부위 소품과 함께 착용 가능'}
+
+def coin_progress(c,uid,p,now):
+ earned={'attendance':0,'game':0,'activity':0,'care':len(set(settled(p,now)['rewarded']))}
+ for row in c.execute('SELECT event_key,amount FROM pet_coin_rewards WHERE user_id=? AND day=?',(uid,day(now))):
+  group=row['event_key'].split(':')[0]
+  if group in earned:earned[group]+=row['amount']
+ return [{'key':key,'earned':min(limit,earned[key]),'limit':limit} for key,limit in [('attendance',10),('game',10),('activity',20),('care',4)]]
 def initialize(c):
  c.execute('CREATE TABLE IF NOT EXISTS intern_pets(user_id INTEGER PRIMARY KEY,data TEXT NOT NULL)')
  c.execute('CREATE TABLE IF NOT EXISTS pet_coin_wallet(user_id INTEGER PRIMARY KEY,balance INTEGER NOT NULL DEFAULT 0)')
@@ -71,7 +85,8 @@ def get(h,u,db):
   if row:
    p=collect(c,u['id'],json.loads(row['data']));c.execute('UPDATE intern_pets SET data=? WHERE user_id=?',(json.dumps(p,ensure_ascii=False),u['id']))
   rewards=[dict(r) for r in c.execute('SELECT event_key,day,amount FROM pet_coin_rewards WHERE user_id=? ORDER BY day DESC,event_key LIMIT 12',(u['id'],))]
- h.reply(200,{'pet':{**public(p,time.time(),u['role']=='admin'),'coin_history':rewards} if row else None});return True
+  progress=coin_progress(c,u['id'],p,time.time()) if row else []
+ h.reply(200,{'pet':{**public(p,time.time(),u['role']=='admin'),'coin_history':rewards,'coin_progress':progress} if row else None});return True
 def post(h,u,d,db):
  if h.path not in ['/api/pet/adopt','/api/pet/care','/api/pet/decorate','/api/pet/rename','/api/pet/stroke']:return False
  now=time.time();message=''
@@ -131,4 +146,5 @@ def post(h,u,d,db):
     if slot and item in p['equipped']:
      p['equipped']=[key for key in p['equipped'] if key==item or ITEMS.get(key,{}).get('slot')!=slot]
    c.execute('UPDATE intern_pets SET data=? WHERE user_id=?',(json.dumps(p,ensure_ascii=False),u['id']))
- h.reply(200,{'pet':public(p,now,u['role']=='admin'),'message':message});return True
+ with db() as c:progress=coin_progress(c,u['id'],p,now)
+ h.reply(200,{'pet':{**public(p,now,u['role']=='admin'),'coin_progress':progress},'message':message});return True
