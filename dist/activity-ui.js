@@ -3,7 +3,7 @@ const levelSteps=[0,100,250,450,700,950,1200,1800,2500,3300];
 const levelNames=['인턴 새내기','업무 입문자','자료 수집가','체크리스트 실천가','용어 학습자','문서 탐색가','등기부 탐험가','업무 숙련가','인턴 길잡이','퀘스트 마스터'];
 function levelOf(xp){return Math.max(0,levelSteps.findLastIndex(x=>xp>=x));}
 async function activityRequest(path,data){const r=await fetch('/api/'+path,{credentials:'same-origin',...(data?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}:{})});const result=await r.json();if(!r.ok)throw Error(result.error||'연결을 확인해 주세요.');return result;}
-async function loadActivity(){if(activityLoading||!window.hfAuth)return;activityLoading=true;try{activityState=await activityRequest('activity');paintActivity();showAnnouncementAlert();loadMealInvitations();}catch(e){const note=document.querySelector('.notice');if(note)note.textContent=e.message;}finally{activityLoading=false;}}
+async function loadActivity(){if(activityLoading||!window.hfAuth)return;activityLoading=true;try{activityState=await activityRequest('activity');paintActivity();showAnnouncementAlert();loadMealInvitations();loadTodayMeals();}catch(e){const note=document.querySelector('.notice');if(note)note.textContent=e.message;}finally{activityLoading=false;}}
 function memberRows(rows,type){return rows.length?rows.map((r,i)=>`<div class="row ranking-row ${r.id===window.hfAuth.user.id?'my-ranking':''}"><strong>${i+1}</strong><span>${esc(r.name)}</span><small>${type==='reflex'?r.ms+' ms':Number(r.xp)+' XP'}</small></div>`).join(''):'<p class="muted">아직 기록이 없습니다.</p>';}
 function cleaningMarkup(full=false){
  if(!activityState)return '<p>담당 구역을 확인 중입니다…</p>';
