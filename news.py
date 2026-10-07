@@ -104,7 +104,9 @@ def summary_lines(data,link):
    for a in block.get('annotations',[]):
     if a.get('type')=='url_citation' and a.get('url','').rstrip('/')==link.rstrip('/'):cited=True
  lines=[re.sub(r'^\s*(?:[-*•]\s+|\d+[.)]\s+)','',line).strip() for line in '\n'.join(texts).splitlines() if line.strip()]
- if not cited or len(lines)!=3 or any(not line or len(line)>220 for line in lines):raise ValueError('원문 내용을 확인하지 못해 요약을 표시할 수 없습니다.')
+ if not cited or len(lines)!=3 or any(not line or len(line)>220 for line in lines):
+  print('Gemini summary validation:',json.dumps({'cited':cited,'lengths':[len(x) for x in lines],'urlMetadata':[x.get('urlContextMetadata',{}) for x in data.get('candidates',[])]}),flush=True)
+  raise ValueError('원문 내용을 확인하지 못해 요약을 표시할 수 없습니다.')
  return lines
 
 def summarize(h,u,d,db):
