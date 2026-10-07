@@ -79,7 +79,11 @@ def post(h,u,d,db):
    if row:h.reply(409,{'error':'이미 함께 지내는 보금이가 있어요.'});return True
    name=d.get('name','보금이')
    if not isinstance(name,str) or not 1<=len(name.strip())<=12:h.reply(400,{'error':'이름은 1~12자로 입력해 주세요.'});return True
-   p=collect(c,u['id'],initial(name.strip(),now));c.execute('INSERT INTO intern_pets(user_id,data) VALUES(?,?)',(u['id'],json.dumps(p,ensure_ascii=False)));message='우리의 첫 보금자리가 생겼어요!'
+   color=d.get('color','')
+   if not isinstance(color,str) or color not in ['', 'color-mint','color-pink','color-lavender','color-sunset']:h.reply(400,{'error':'보금이 색상을 선택해 주세요.'});return True
+   p=collect(c,u['id'],initial(name.strip(),now))
+   if color:p['owned'].append(color);p['equipped'].append(color)
+   c.execute('INSERT INTO intern_pets(user_id,data) VALUES(?,?)',(u['id'],json.dumps(p,ensure_ascii=False)));message='우리의 첫 보금자리가 생겼어요!'
   else:
    if not row:h.reply(404,{'error':'먼저 보금이를 맞이해 주세요.'});return True
    p=collect(c,u['id'],settled(json.loads(row['data']),now))
