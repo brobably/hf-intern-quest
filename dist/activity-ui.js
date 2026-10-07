@@ -12,7 +12,7 @@ function cleaningMarkup(full=false){
 }
 function paintActivity(){
  const content=document.querySelector('#content');if(!content)return;
- const route=location.hash.slice(1);const a=activityState;
+ const route=location.hash.slice(1);const a=activityState;const headerCleaning=document.querySelector('#header-cleaning');if(headerCleaning){const names=[...new Set((a?.cleaning||[]).map(j=>j.name))];headerCleaning.innerHTML='<span>금주 청소 당번</span><strong>'+ (a?(names.length?names.map(esc).join(', '):'미배정'):'확인 중…')+'</strong>';}
  if(route==='cleaning'){content.innerHTML=`<h1 class="view-title">금주 청소 담당자</h1>${panel('이번 주 청소 배정',cleaningMarkup(true))}${cleaningRotationMarkup()}`;return;}
  if(route==='reflex'){
   if(!content.querySelector('#reflex-play'))content.innerHTML=`<h1 class="view-title">순발력 대결</h1>${panel('반응속도 테스트','<p>시작 후 버튼이 노란색으로 바뀌면 누르세요. 너무 빨리 누르면 기록되지 않습니다.</p><button type="button" id="reflex-play">눌러서 시작</button><p id="reflex-message" role="status"></p>')}${panel('이번 주 참여자 랭킹','<div id="reflex-ranking"></div>')}`;
