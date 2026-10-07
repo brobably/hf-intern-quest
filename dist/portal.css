@@ -214,3 +214,5 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 
 .pet-coin-progress>div>span{display:inline;padding:0;background:none;border-radius:0;font-size:13px;color:inherit}.pet-coin-progress>div>strong{color:inherit;font-weight:600}.pet-play-toolbar progress{min-width:20px}.pet-room-prop .pet-prop{filter:drop-shadow(0 3px 2px #8b795b22)}
 .pet-prop{display:block!important;height:auto!important;aspect-ratio:1;flex-shrink:0}.pet-shop-prop{width:110px!important;max-width:80%}.pet-coin-progress>div>span{height:auto!important}
+
+.pet-prop{clip-path:inset(7% 6% 5% 6%)}
