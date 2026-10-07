@@ -28,7 +28,29 @@ ITEMS={
  'look-cozy':{'name':'포근 보금이','price':25,'category':'character','icon':'🧣','slot':'look','description':'따뜻한 목도리를 두른 친구'}
 }
 ACTIONS={'feed':('밥 먹기',{'hunger':25,'happy':5}),'rest':('쉬기',{'energy':30}),'clean':('방 청소',{'hygiene':30,'happy':5}),'study':('함께 공부',{'happy':15,'energy':-10,'hunger':-5})}
-def initialize(c):c.execute('CREATE TABLE IF NOT EXISTS intern_pets(user_id INTEGER PRIMARY KEY,data TEXT NOT NULL)')
+def initialize(c):
+ c.execute('CREATE TABLE IF NOT EXISTS intern_pets(user_id INTEGER PRIMARY KEY,data TEXT NOT NULL)')
+ c.execute('CREATE TABLE IF NOT EXISTS pet_coin_wallet(user_id INTEGER PRIMARY KEY,balance INTEGER NOT NULL DEFAULT 0)')
+ c.execute('CREATE TABLE IF NOT EXISTS pet_coin_rewards(user_id INTEGER NOT NULL,event_key TEXT NOT NULL,day TEXT NOT NULL,amount INTEGER NOT NULL,PRIMARY KEY(user_id,event_key))')
+
+def reward(c,uid,key,amount,limit=None):
+ stamp=day(time.time())
+ if c.execute('SELECT event_key FROM pet_coin_rewards WHERE user_id=? AND event_key=?',(uid,key)).fetchone():return 0
+ if limit:
+  used=c.execute('SELECT COALESCE(SUM(amount),0) FROM pet_coin_rewards WHERE user_id=? AND day=? AND event_key LIKE ?',(uid,stamp,limit[0]+':%')).fetchone()[0]
+  amount=min(amount,max(0,limit[1]-used))
+ if amount<=0:return 0
+ inserted=c.execute('INSERT OR IGNORE INTO pet_coin_rewards(user_id,event_key,day,amount) VALUES(?,?,?,?) RETURNING event_key',(uid,key,stamp,amount)).fetchone()
+ if not inserted:return 0
+ c.execute('INSERT OR IGNORE INTO pet_coin_wallet(user_id,balance) VALUES(?,0)',(uid,))
+ c.execute('UPDATE pet_coin_wallet SET balance=balance+? WHERE user_id=?',(amount,uid))
+ return amount
+
+def collect(c,uid,p):
+ row=c.execute('SELECT balance FROM pet_coin_wallet WHERE user_id=?',(uid,)).fetchone()
+ if row and row['balance']:
+  p['coins']+=row['balance'];c.execute('UPDATE pet_coin_wallet SET balance=0 WHERE user_id=?',(uid,))
+ return p
 def day(now):return datetime.fromtimestamp(now,ZONE).date().isoformat()
 def initial(name,now):return dict(name=name,growth=0,coins=0,hunger=75,happy=75,energy=75,hygiene=75,updated=now,last_care=0,reward_day=day(now),rewarded=[],owned=[],equipped=[],history=[])
 def settled(data,now):
@@ -42,8 +64,12 @@ def public(p,now):
  return {**p,'stage':stage,'stage_name':STAGES[stage][0],'next_growth':STAGES[stage+1][1] if stage<3 else None,'care_wait':max(0,5-int(now-p['last_care'])),'items':ITEMS,'stages':[{'name':name,'growth':goal} for name,goal in STAGES]}
 def get(h,u,db):
  if h.path!='/api/pet':return False
- with db() as c:row=c.execute('SELECT data FROM intern_pets WHERE user_id=?',(u['id'],)).fetchone()
- h.reply(200,{'pet':public(json.loads(row['data']),time.time()) if row else None});return True
+ with db() as c:
+  c.execute('BEGIN IMMEDIATE');row=c.execute('SELECT data FROM intern_pets WHERE user_id=?',(u['id'],)).fetchone()
+  if row:
+   p=collect(c,u['id'],json.loads(row['data']));c.execute('UPDATE intern_pets SET data=? WHERE user_id=?',(json.dumps(p,ensure_ascii=False),u['id']))
+  rewards=[dict(r) for r in c.execute('SELECT event_key,day,amount FROM pet_coin_rewards WHERE user_id=? ORDER BY day DESC,event_key LIMIT 12',(u['id'],))]
+ h.reply(200,{'pet':{**public(p,time.time()),'coin_history':rewards} if row else None});return True
 def post(h,u,d,db):
  if h.path not in ['/api/pet/adopt','/api/pet/care','/api/pet/decorate','/api/pet/rename']:return False
  now=time.time();message=''
@@ -53,10 +79,11 @@ def post(h,u,d,db):
    if row:h.reply(409,{'error':'이미 함께 지내는 보금이가 있어요.'});return True
    name=d.get('name','보금이')
    if not isinstance(name,str) or not 1<=len(name.strip())<=12:h.reply(400,{'error':'이름은 1~12자로 입력해 주세요.'});return True
-   p=initial(name.strip(),now);c.execute('INSERT INTO intern_pets(user_id,data) VALUES(?,?)',(u['id'],json.dumps(p,ensure_ascii=False)));message='우리의 첫 보금자리가 생겼어요!'
+   p=collect(c,u['id'],initial(name.strip(),now));c.execute('INSERT INTO intern_pets(user_id,data) VALUES(?,?)',(u['id'],json.dumps(p,ensure_ascii=False)));message='우리의 첫 보금자리가 생겼어요!'
   else:
    if not row:h.reply(404,{'error':'먼저 보금이를 맞이해 주세요.'});return True
-   p=settled(json.loads(row['data']),now)
+   p=collect(c,u['id'],settled(json.loads(row['data']),now))
+   c.execute('UPDATE intern_pets SET data=? WHERE user_id=?',(json.dumps(p,ensure_ascii=False),u['id']))
    if h.path=='/api/pet/care':
     action=d.get('action')
     if action not in ACTIONS:h.reply(400,{'error':'돌보기 방법을 확인해 주세요.'});return True
@@ -64,8 +91,8 @@ def post(h,u,d,db):
     title,effects=ACTIONS[action]
     for key,amount in effects.items():p[key]=max(25,min(100,p[key]+amount))
     reward=action not in p['rewarded'];before=max(i for i,(_,goal) in enumerate(STAGES) if p['growth']>=goal)
-    if reward:p['growth']+=8;p['coins']+=5;p['rewarded'].append(action)
-    p['last_care']=now;message=title+' 완료! '+('성장 +8 · 보금 코인 +5' if reward else '기분이 좋아졌어요. 오늘의 성장 보상은 이미 받았어요.')
+    if reward:p['growth']+=8;p['coins']+=1;p['rewarded'].append(action)
+    p['last_care']=now;message=title+' 완료! '+('성장 +8 · 보금 코인 +1' if reward else '기분이 좋아졌어요. 오늘의 성장 보상은 이미 받았어요.')
     after=max(i for i,(_,goal) in enumerate(STAGES) if p['growth']>=goal)
     if after>before:message+=' · '+STAGES[after][0]+'로 성장했어요!'
     p['history']=([{'text':title+(' · 성장 +8' if reward else ''),'time':datetime.fromtimestamp(now,ZONE).isoformat()}]+p['history'])[:12]

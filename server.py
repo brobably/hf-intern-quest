@@ -202,6 +202,7 @@ class Handler(SimpleHTTPRequestHandler):
   if path=='/api/attendance':
    day=datetime.now(timezone(timedelta(hours=9))).date().isoformat()
    with db() as c:
+    c.execute('BEGIN IMMEDIATE')
     c.execute('INSERT OR IGNORE INTO attendance(user_id,day) VALUES(?,?)',(u['id'],day))
     activity.award(c,u['id'],'attendance:'+day,10)
    return self.reply(200,attendance_info(u['id']))
