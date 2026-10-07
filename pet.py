@@ -3,7 +3,26 @@ import json,time
 from datetime import datetime,timezone,timedelta
 ZONE=timezone(timedelta(hours=9))
 STAGES=[('새싹집',0),('아기 보금이',32),('인턴 보금이',96),('든든한 보금이',192)]
-ITEMS={'plant':{'name':'작은 화분','price':12},'books':{'name':'인턴 책장','price':18},'lamp':{'name':'포근한 조명','price':24}}
+ITEMS={
+ 'plant':{'name':'작은 화분','price':12,'category':'furniture','icon':'🪴'},
+ 'books':{'name':'인턴 책장','price':18,'category':'furniture','icon':'📚'},
+ 'lamp':{'name':'포근한 조명','price':24,'category':'furniture','icon':'💡'},
+ 'sofa':{'name':'구름 소파','price':30,'category':'furniture','icon':'🛋️'},
+ 'clock':{'name':'곰돌이 시계','price':16,'category':'furniture','icon':'🕰️'},
+ 'flowers':{'name':'봄날 꽃병','price':20,'category':'furniture','icon':'🌷'},
+ 'cat':{'name':'고양이 인형','price':25,'category':'furniture','icon':'🐱'},
+ 'stars':{'name':'별빛 가랜드','price':22,'category':'furniture','icon':'⭐'},
+ 'wall-mint':{'name':'민트 벽지','price':20,'category':'room','icon':'🌿','slot':'wall'},
+ 'wall-peach':{'name':'복숭아 벽지','price':20,'category':'room','icon':'🍑','slot':'wall'},
+ 'wall-night':{'name':'밤하늘 벽지','price':28,'category':'room','icon':'🌌','slot':'wall'},
+ 'rug-pink':{'name':'딸기 우유 러그','price':15,'category':'room','icon':'🩷','slot':'rug'},
+ 'rug-mint':{'name':'민트 구름 러그','price':15,'category':'room','icon':'🟢','slot':'rug'},
+ 'floor-white':{'name':'화이트 우드 바닥','price':25,'category':'room','icon':'🪵','slot':'floor'},
+ 'look-scholar':{'name':'똑똑이 보금이','price':20,'category':'character','icon':'👓','slot':'look','description':'동그란 안경을 쓴 공부 친구'},
+ 'look-ribbon':{'name':'리본 보금이','price':20,'category':'character','icon':'🎀','slot':'look','description':'분홍 리본을 단 다정한 친구'},
+ 'look-music':{'name':'멜로디 보금이','price':30,'category':'character','icon':'🎧','slot':'look','description':'헤드폰을 쓴 음악 친구'},
+ 'look-cozy':{'name':'포근 보금이','price':25,'category':'character','icon':'🧣','slot':'look','description':'따뜻한 목도리를 두른 친구'}
+}
 ACTIONS={'feed':('밥 먹기',{'hunger':25,'happy':5}),'rest':('쉬기',{'energy':30}),'clean':('방 청소',{'hygiene':30,'happy':5}),'study':('함께 공부',{'happy':15,'energy':-10,'hunger':-5})}
 def initialize(c):c.execute('CREATE TABLE IF NOT EXISTS intern_pets(user_id INTEGER PRIMARY KEY,data TEXT NOT NULL)')
 def day(now):return datetime.fromtimestamp(now,ZONE).date().isoformat()
@@ -58,5 +77,9 @@ def post(h,u,d,db):
      p['coins']-=ITEMS[item]['price'];p['owned'].append(item);p['equipped'].append(item);message='새 소품을 방에 놓았어요!'
     elif item in p['equipped']:p['equipped'].remove(item);message='소품을 보관했어요.'
     else:p['equipped'].append(item);message='소품을 방에 놓았어요.'
+    slot=ITEMS[item].get('slot')
+    if slot and item in p['equipped']:
+     p['equipped']=[key for key in p['equipped'] if key==item or ITEMS.get(key,{}).get('slot')!=slot]
+    if ITEMS[item]['category']=='character':message='보금이의 모습을 바꿨어요!'
    c.execute('UPDATE intern_pets SET data=? WHERE user_id=?',(json.dumps(p,ensure_ascii=False),u['id']))
  h.reply(200,{'pet':public(p,now),'message':message});return True
