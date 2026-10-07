@@ -133,11 +133,11 @@ def summarize(h,u,d,db):
     with urlopen(Request('https://generativelanguage.googleapis.com/v1beta/models',headers={'x-goog-api-key':key}),timeout=10) as response:catalog=json.load(response)
     models=[m['name'] for m in catalog.get('models',[]) if 'flash' in m.get('name','') and 'generateContent' in m.get('supportedGenerationMethods',[]) and not any(x in m['name'] for x in ['image','tts','live','exp'])]
     print('Available Gemini text Flash models:',','.join(models),flush=True)
-    preferred=['models/gemini-3.8-flash','models/gemini-3.5-flash','models/gemini-2.5-flash','models/gemini-2.5-flash-lite']
+    preferred=['models/gemini-3.5-flash-lite','models/gemini-3.1-flash-lite','models/gemini-2.5-flash-lite','models/gemini-3.8-flash']
     summary_model=next((m for m in preferred if m in models),models[0] if models else None)
     if not summary_model:raise ValueError('이 Gemini 프로젝트에서 사용할 수 있는 Flash 요약 모델이 없습니다.')
    request=Request('https://generativelanguage.googleapis.com/v1beta/'+summary_model+':generateContent',data=json.dumps({'contents':[{'parts':[{'text':prompt}]}],'tools':[{'url_context':{}}],'generationConfig':{'maxOutputTokens':1200}}).encode(),headers={'Content-Type':'application/json','x-goog-api-key':key})
-   with urlopen(request,timeout=20) as response:raw=response.read(1000001)
+   with urlopen(request,timeout=35) as response:raw=response.read(1000001)
    if len(raw)>1000000:raise ValueError('요약 응답을 처리하지 못했습니다.')
    lines=summary_lines(json.loads(raw),link)
   except HTTPError as e:
