@@ -16,3 +16,10 @@ https://tamagotchi-official.com/manual/toy/uni/manual_03/Uni_WEB_IS_EN.pdf
 ## 이미지
 Built-in image_gen 사용. dist/bogeumi-stages.png에 원본 알파를 유지해 저장.
 Prompt: Original exceptionally cute house-shaped intern companion, blue roof, cream body, blush cheeks, soft clay 3D toy style, four growth stages in equal 2x2 transparent atlas: smiling seed house, baby house, intern with blank ID lanyard and notebook, reliable mature house with blue cardigan and golden house key. One centered full-body sprite per quadrant with padding. No text, official logo, watermark, or room background.
+
+
+## Natural outfits revision
+Mode: built-in image generation, reference-based new sprite atlas.
+Asset: dist/bogeumi-outfits.png. 4 columns = growth stages, 4 rows = glasses / ribbon / headphones / scarf. Each cell contains the complete clothed character; no SVG or emoji overlay.
+Prompt: Create a transparent 4x4 game sprite atlas of the original cream house mascot with blue roof in matching soft 3D clay style. Columns show baby, toddler, intern with blank ID and notebook, grown house with cardigan and house key. Rows show fitted round navy glasses, soft pink bow physically attached to roof, compact padded headphones wrapped over roof, knitted peach scarf wrapped around neck. Coherent light, volumetric materials and contact shadows; no text or borders. Preserve recognizable original character.
+Mouse interaction: click or drag over the character to stroke it. Happiness +3, 10-second server cooldown, no coins or growth awarded.

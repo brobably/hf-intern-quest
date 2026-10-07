@@ -71,7 +71,7 @@ def get(h,u,db):
   rewards=[dict(r) for r in c.execute('SELECT event_key,day,amount FROM pet_coin_rewards WHERE user_id=? ORDER BY day DESC,event_key LIMIT 12',(u['id'],))]
  h.reply(200,{'pet':{**public(p,time.time()),'coin_history':rewards} if row else None});return True
 def post(h,u,d,db):
- if h.path not in ['/api/pet/adopt','/api/pet/care','/api/pet/decorate','/api/pet/rename']:return False
+ if h.path not in ['/api/pet/adopt','/api/pet/care','/api/pet/decorate','/api/pet/rename','/api/pet/stroke']:return False
  now=time.time();message=''
  with db() as c:
   c.execute('BEGIN IMMEDIATE');row=c.execute('SELECT data FROM intern_pets WHERE user_id=?',(u['id'],)).fetchone()
@@ -100,6 +100,9 @@ def post(h,u,d,db):
     after=max(i for i,(_,goal) in enumerate(STAGES) if p['growth']>=goal)
     if after>before:message+=' · '+STAGES[after][0]+'로 성장했어요!'
     p['history']=([{'text':title+(' · 성장 +8' if reward else ''),'time':datetime.fromtimestamp(now,ZONE).isoformat()}]+p['history'])[:12]
+   elif h.path=='/api/pet/stroke':
+    if now-p.get('last_stroke',0)<10:h.reply(429,{'error':'보금이가 아직 좋아하고 있어요. 잠깐 뒤 다시 쓰다듬어 주세요.'});return True
+    p['happy']=min(100,p['happy']+3);p['last_stroke']=now;message='쓰담쓰담, 고마워요! 행복 +3 ♥'
    elif h.path=='/api/pet/rename':
     name=d.get('name')
     if not isinstance(name,str) or not 1<=len(name.strip())<=12:h.reply(400,{'error':'이름은 1~12자로 입력해 주세요.'});return True
