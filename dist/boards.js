@@ -1,6 +1,7 @@
 function reconcileProposalList(list,html){
  if(list.dataset.markup===html)return;
  const template=document.createElement('template');template.innerHTML=html;
+ for(const node of [...list.childNodes])if(node.nodeType!==1)node.remove();
  const old=new Map([...list.children].map(node=>[node.dataset.proposalId,node]));
  let cursor=list.firstElementChild;
  for(const fresh of [...template.content.children]){
