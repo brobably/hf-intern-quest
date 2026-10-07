@@ -121,7 +121,7 @@ const logoIcon=document.querySelector('aside > a svg');if(logoIcon){const box=lo
 
 function organizeSidebar(){
  const menu=document.querySelector('aside nav');
- const groups=[['업무용',['manual-ai','glossary','registry-guide','checklist','wiki']],['그 외',['cleaning','lunch','study','articles','jobs','reflex']],['기타',['qna','suggestions']]];
+ const groups=[['업무용',['manual-ai','glossary','registry-guide','checklist','wiki']],['그 외',['cleaning','lunch','study','articles','jobs']],['게임',['reflex']],['기타',['qna','suggestions']]];
  for(const [name,keys] of groups){
   const group=document.createElement('details');group.className='sidebar-group';group.open=true;
   const heading=document.createElement('summary');heading.textContent=name;group.append(heading);
