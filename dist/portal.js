@@ -52,7 +52,7 @@ function taskDays(t){return Array.isArray(t[3])?t[3]:t[3]==='daily'?[1,2,3,4,5]:
 function taskDone(t){return taskDays(t).length?t[1]&&t[4]===taskDay():t[1];}
 function taskDue(t){const days=taskDays(t);return !days.length||days.includes(new Date(taskDay()+'T12:00:00Z').getUTCDay());}
 function taskWeekdays(index,days=[]){return `<div class="task-weekdays" role="group" aria-label="업무 요일">${['월','화','수','목','금'].map((name,i)=>`<label><input type="checkbox" ${index===null?'name="days"':`data-task-day="${index}"`} value="${i+1}" ${days.includes(i+1)?'checked':''}><span>${name}</span></label>`).join('')}</div>`;}
-function taskRows(todayOnly=false){return state.tasks.map((t,i)=>!todayOnly||taskDue(t)?`<div class="task-row"><label class="task-check"><input type="checkbox" data-task="${i}" ${taskDone(t)?'checked':''}><span>${esc(t[0])}</span></label>${taskWeekdays(i,taskDays(t))}<small>+5 XP</small><button type="button" class="task-delete" data-delete-task="${i}" aria-label="${esc(t[0])} 삭제">삭제</button></div>`:'').join('')}
+function taskRows(todayOnly=false){return state.tasks.map((t,i)=>!todayOnly||taskDue(t)?`<div class="task-row ${todayOnly?'task-row-today':''}"><label class="task-check"><input type="checkbox" data-task="${i}" ${taskDone(t)?'checked':''}><span>${esc(t[0])}</span></label>${todayOnly?'':taskWeekdays(i,taskDays(t))}<small>+5 XP</small><button type="button" class="task-delete" data-delete-task="${i}" aria-label="${esc(t[0])} 삭제">삭제</button></div>`:'').join('')}
 
 
 function panel(title,body){return `<section class="panel"><h2>${title}</h2>${body}</section>`}
@@ -121,7 +121,7 @@ const logoIcon=document.querySelector('aside > a svg');if(logoIcon){const box=lo
 
 function organizeSidebar(){
  const menu=document.querySelector('aside nav');
- const groups=[['업무용',['manual-ai','glossary','registry-guide','checklist','cleaning','wiki']],['그 외',['lunch','study','articles','jobs','reflex']],['기타',['qna','suggestions']]];
+ const groups=[['업무용',['manual-ai','glossary','registry-guide','checklist','wiki']],['그 외',['cleaning','lunch','study','articles','jobs','reflex']],['기타',['qna','suggestions']]];
  for(const [name,keys] of groups){
   const group=document.createElement('details');group.className='sidebar-group';group.open=true;
   const heading=document.createElement('summary');heading.textContent=name;group.append(heading);
