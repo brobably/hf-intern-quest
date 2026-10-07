@@ -274,7 +274,7 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 .bogeumi-sprite.pet-stage-sprite{position:relative;background:none!important;overflow:visible}
 .pet-painted-avatar>.pet-wardrobe-frame,.pet-wardrobe-layer{position:absolute;inset:0;z-index:1;pointer-events:none}
 .pet-wardrobe-layer{z-index:4}.pet-painted-avatar .pet-face{z-index:5}
-.pet-roof-tint{display:none;clip-path:polygon(0 0,100% 0,100% 58%,77% 42%,51% 17%,23% 42%,0 58%)}
+.pet-roof-tint{display:none;clip-path:inset(0 0 40% 0)}
 .pet-painted-avatar.color-mint .pet-roof-tint{display:block;filter:url(#pet-color-mint)}
 .pet-painted-avatar.color-pink .pet-roof-tint{display:block;filter:url(#pet-color-pink)}
 .pet-painted-avatar.color-lavender .pet-roof-tint{display:block;filter:url(#pet-color-lavender)}
