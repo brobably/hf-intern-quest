@@ -208,7 +208,7 @@ class Handler(SimpleHTTPRequestHandler):
    s=d.get('state');allowed={'tasks','clean','lunch','wiki','best','favorites'}
    if not isinstance(s,dict) or set(s)-allowed:return self.reply(400,{'error':'저장 내용을 확인해 주세요.'})
    if any(not isinstance(s.get(k,[]),list) for k in ['tasks','clean','lunch','wiki']):return self.reply(400,{'error':'저장 형식이 올바르지 않습니다.'})
-   if 'favorites' in s and (not isinstance(s['favorites'],list) or len(s['favorites'])>14 or any(x not in ['','manual-ai','glossary','registry-guide','checklist','cleaning','lunch','reflex','wiki','study','articles','jobs','qna','suggestions'] for x in s['favorites'])):return self.reply(400,{'error':'즐겨찾기 목록을 확인해 주세요.'})
+   if 'favorites' in s and (not isinstance(s['favorites'],list) or len(s['favorites'])>15 or any(x not in ['','games','manual-ai','glossary','registry-guide','checklist','cleaning','lunch','reflex','wiki','study','articles','jobs','qna','suggestions'] for x in s['favorites'])):return self.reply(400,{'error':'즐겨찾기 목록을 확인해 주세요.'})
    with db() as c:
     c.execute('BEGIN IMMEDIATE')
     previous=json.loads(c.execute('SELECT state FROM users WHERE id=?',(u['id'],)).fetchone()[0])

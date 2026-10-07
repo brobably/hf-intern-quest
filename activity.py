@@ -5,6 +5,8 @@ def today():return datetime.now(ZONE).date().isoformat()
 def week():
  d=datetime.now(ZONE).date();return (d-timedelta(days=d.weekday())).isoformat()
 def initialize(c):
+ c.execute('CREATE TABLE IF NOT EXISTS reflex_comment_threads(comment_id INTEGER PRIMARY KEY,parent_id INTEGER NOT NULL)')
+ c.execute('CREATE TABLE IF NOT EXISTS reflex_comment_likes(comment_id INTEGER NOT NULL,user_id INTEGER NOT NULL,PRIMARY KEY(comment_id,user_id))')
  c.execute('CREATE TABLE IF NOT EXISTS cleaning_rotation_weeks(department TEXT NOT NULL,week TEXT NOT NULL,PRIMARY KEY(department,week))')
  c.execute('CREATE TABLE IF NOT EXISTS cleaning_rotations(department TEXT PRIMARY KEY,start_week TEXT NOT NULL,area TEXT NOT NULL,members TEXT NOT NULL)')
  c.execute('CREATE TABLE IF NOT EXISTS reflex_comments(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,body TEXT NOT NULL,created TEXT NOT NULL)')
@@ -27,8 +29,14 @@ def materialize_rotations(c,target_week):
 def award(c,uid,key,amount):c.execute('INSERT OR IGNORE INTO points(user_id,event_key,day,amount) VALUES(?,?,?,?)',(uid,key,today(),amount))
 def get(h,u,db):
  if h.path=='/api/reflex/comments':
-  with db() as c:rows=c.execute('SELECT reflex_comments.*,users.name AS author FROM reflex_comments JOIN users ON users.id=reflex_comments.user_id ORDER BY reflex_comments.id DESC LIMIT 100').fetchall()
-  h.reply(200,{'comments':[dict(r) for r in rows]});return True
+  with db() as c:
+   roots=c.execute('SELECT id FROM reflex_comments WHERE id NOT IN (SELECT comment_id FROM reflex_comment_threads) ORDER BY id DESC LIMIT 100').fetchall()
+   ids=[r['id'] for r in roots];rows=[]
+   if ids:
+    marks=','.join('?' for _ in ids)
+    rows=c.execute(f"SELECT r.*,users.name AS author,t.parent_id,(SELECT COUNT(*) FROM reflex_comment_likes l WHERE l.comment_id=r.id) AS hearts,EXISTS(SELECT 1 FROM reflex_comment_likes l WHERE l.comment_id=r.id AND l.user_id=?) AS liked FROM reflex_comments r JOIN users ON users.id=r.user_id LEFT JOIN reflex_comment_threads t ON t.comment_id=r.id WHERE r.id IN ({marks}) OR t.parent_id IN ({marks}) ORDER BY r.id DESC",(u['id'],*ids,*ids)).fetchall()
+   received=c.execute('SELECT COUNT(*) FROM reflex_comment_likes l JOIN reflex_comments r ON r.id=l.comment_id WHERE r.user_id=?',(u['id'],)).fetchone()[0]
+  h.reply(200,{'comments':[dict(r) for r in rows],'received_hearts':received});return True
  if h.path!='/api/activity':return False
  month=today()[:7]
  with db() as c:
@@ -52,10 +60,26 @@ def get(h,u,db):
 def post(h,u,d,db):
  path=h.path
  if path=='/api/reflex/comments/post':
-  body=d.get('body')
+  body=d.get('body');parent=d.get('parent_id')
   if not isinstance(body,str) or not 1<=len(body.strip())<=1000:h.reply(400,{'error':'댓글은 1~1,000자로 작성해 주세요.'});return True
-  with db() as c:c.execute('INSERT INTO reflex_comments(user_id,body,created) VALUES(?,?,?)',(u['id'],body.strip(),datetime.now(ZONE).isoformat()))
+  if parent is not None and type(parent)!=int:h.reply(400,{'error':'답글 대상을 확인해 주세요.'});return True
+  with db() as c:
+   c.execute('BEGIN IMMEDIATE')
+   if parent is not None:
+    root=c.execute('SELECT body FROM reflex_comments WHERE id=?',(parent,)).fetchone()
+    if not root or not root['body'] or c.execute('SELECT comment_id FROM reflex_comment_threads WHERE comment_id=?',(parent,)).fetchone():h.reply(400,{'error':'답글을 달 수 없는 댓글입니다.'});return True
+   row=c.execute('INSERT INTO reflex_comments(user_id,body,created) VALUES(?,?,?) RETURNING id',(u['id'],body.strip(),datetime.now(ZONE).isoformat())).fetchone()
+   if parent is not None:c.execute('INSERT INTO reflex_comment_threads(comment_id,parent_id) VALUES(?,?)',(row['id'],parent))
   h.reply(201,{'ok':True});return True
+ if path=='/api/reflex/comments/heart':
+  cid=d.get('id');liked=d.get('liked')
+  if type(cid)!=int or type(liked)!=bool:h.reply(400,{'error':'하트 요청을 확인해 주세요.'});return True
+  with db() as c:
+   c.execute('BEGIN IMMEDIATE');row=c.execute('SELECT body FROM reflex_comments WHERE id=?',(cid,)).fetchone()
+   if not row or not row['body']:h.reply(404,{'error':'댓글이 없습니다.'});return True
+   if liked:c.execute('INSERT OR IGNORE INTO reflex_comment_likes(comment_id,user_id) VALUES(?,?)',(cid,u['id']))
+   else:c.execute('DELETE FROM reflex_comment_likes WHERE comment_id=? AND user_id=?',(cid,u['id']))
+  h.reply(200,{'ok':True});return True
  if path=='/api/reflex/comments/remove':
   cid=d.get('id')
   if type(cid)!=int:h.reply(400,{'error':'댓글을 확인해 주세요.'});return True
@@ -63,7 +87,10 @@ def post(h,u,d,db):
    c.execute('BEGIN IMMEDIATE');row=c.execute('SELECT user_id FROM reflex_comments WHERE id=?',(cid,)).fetchone()
    if not row:h.reply(404,{'error':'댓글이 없습니다.'});return True
    if row['user_id']!=u['id'] and u['role']!='admin':h.reply(403,{'error':'본인이 작성한 댓글만 삭제할 수 있습니다.'});return True
-   c.execute('DELETE FROM reflex_comments WHERE id=?',(cid,))
+   c.execute('DELETE FROM reflex_comment_likes WHERE comment_id=?',(cid,))
+   if c.execute('SELECT comment_id FROM reflex_comment_threads WHERE parent_id=?',(cid,)).fetchone():c.execute("UPDATE reflex_comments SET body='' WHERE id=?",(cid,))
+   else:
+    c.execute('DELETE FROM reflex_comment_threads WHERE comment_id=?',(cid,));c.execute('DELETE FROM reflex_comments WHERE id=?',(cid,))
   h.reply(200,{'ok':True});return True
  if path=='/api/announcements/post':
   if u['role']!='admin':h.reply(403,{'error':'관리자만 공지할 수 있습니다.'});return True
