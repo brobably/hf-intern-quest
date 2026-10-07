@@ -4,6 +4,10 @@ from datetime import datetime,timezone,timedelta
 ZONE=timezone(timedelta(hours=9))
 STAGES=[('새싹집',0),('아기 보금이',32),('인턴 보금이',96),('든든한 보금이',192)]
 ITEMS={
+ 'color-mint':{'name':'민트 보금이','price':15,'category':'color','icon':'🌿','slot':'color'},
+ 'color-pink':{'name':'분홍 보금이','price':15,'category':'color','icon':'🌸','slot':'color'},
+ 'color-lavender':{'name':'라벤더 보금이','price':15,'category':'color','icon':'🪻','slot':'color'},
+ 'color-sunset':{'name':'살구 보금이','price':15,'category':'color','icon':'🍑','slot':'color'},
  'plant':{'name':'작은 화분','price':12,'category':'furniture','icon':'🪴'},
  'books':{'name':'인턴 책장','price':18,'category':'furniture','icon':'📚'},
  'lamp':{'name':'포근한 조명','price':24,'category':'furniture','icon':'💡'},
