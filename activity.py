@@ -88,7 +88,7 @@ def post(h,u,d,db):
   with db() as c:c.execute('INSERT INTO calendar_events(user_id,day,body) VALUES(?,?,?)',(u['id'],day,body.strip()))
   h.reply(201,{'ok':True});return True
  if path=='/api/reflex/start':
-  token=secrets.token_urlsafe(24);delay=1600+secrets.randbelow(2500)
+  token=secrets.token_urlsafe(24);delay=1500+secrets.randbelow(6501)
   with db() as c:c.execute('INSERT INTO reflex_runs(token,user_id,ready) VALUES(?,?,?)',(token,u['id'],time.time()+delay/1000))
   h.reply(200,dict(token=token,delay=delay));return True
  if path=='/api/reflex/result':
