@@ -7,7 +7,20 @@ function petSprite(stage,extra=''){return `<div class="bogeumi-sprite stage-${st
 function petAvatar(stage,look='',color=''){
  const row={'look-scholar':0,'look-ribbon':1,'look-music':2,'look-cozy':3}[look];
  const sprite=Number.isInteger(row)?`<div class="bogeumi-sprite bogeumi-outfit" style="background-position:${stage*100/3}% ${row*100/3}%" aria-hidden="true"></div>`:petSprite(stage);
- return `<div class="pet-avatar ${color}" role="img" aria-label="${petStageNames[stage]}${look?' · '+({'look-scholar':'안경','look-ribbon':'리본','look-music':'헤드폰','look-cozy':'목도리'}[look]):''}">${sprite}</div>`;
+ const face=petFace(stage,look);
+ return `<div class="pet-avatar ${color}" role="img" aria-label="${petStageNames[stage]}${look?' · '+({'look-scholar':'안경','look-ribbon':'리본','look-music':'헤드폰','look-cozy':'목도리'}[look]):''}">${sprite}${face}</div>`;
+}
+function petFace(stage,look){
+ const base=[[46.6,61,65],[30,48,57],[46,62,49],[30,48,38]];
+ const rows={
+  'look-scholar':[[40,60,67],[30,52,54],[30,52,50],[30,52,46]],
+  'look-ribbon':[[40,60,66],[30,52,53],[30,52,48],[30,52,46]],
+  'look-music':[[40,60,64],[30,52,55],[30,52,50],[30,52,44]],
+  'look-cozy':[[40,60,53],[30,52,43],[30,52,41],[30,52,38]]
+ };
+ const [left,right,y]=(rows[look]||base)[stage],radius=look==='look-scholar'?3.1:3.5;
+ const eyes=(smile)=>[left,right].map(x=>`<ellipse cx="${x}" cy="${y}" rx="${radius}" ry="4.3" fill="url(#pet-skin-${stage}-${look||'base'})"/><path d="M${x-2.5} ${y+.5} Q${x} ${y+(smile?-3.8:1.7)} ${x+2.5} ${y+.5}" fill="none" stroke="#36304b" stroke-width="1.2" stroke-linecap="round"/>`).join('');
+ return `<svg class="pet-face" viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="pet-skin-${stage}-${look||'base'}"><stop stop-color="#fff1d8"/><stop offset="1" stop-color="#f8e7cc"/></radialGradient></defs><g class="pet-blink-eyes">${eyes(false)}</g><g class="pet-smile-eyes">${eyes(true)}</g></svg>`;
 }
 function petRoom(p){const roomClasses=p.equipped.filter(k=>k.startsWith('wall-')||k.startsWith('rug-')||k.startsWith('floor-')).join(' ');const look=p.equipped.find(k=>k.startsWith('look-'))||'';const color=p.equipped.find(k=>k.startsWith('color-'))||'';return `<div class="pet-room ${roomClasses} ${p.energy<45?'pet-room-sleepy':''}" aria-label="${esc(p.name)}의 방"><div class="pet-room-wall"><div class="pet-window"><span class="pet-sun"></span><span class="pet-cloud"></span></div><div class="pet-wall-frame">HOME<br><small>작은 오늘, 든든한 내일</small></div></div><div class="pet-floor"></div><div class="pet-rug"></div><div class="pet-cushion"></div>${p.equipped.includes('books')?'<div class="pet-bookshelf" aria-label="인턴 책장"><span>📘 📙 📗</span><span>📕 📘 📓</span></div>':''}${p.equipped.includes('plant')?'<div class="pet-plant" aria-label="작은 화분">🪴</div>':''}${p.equipped.includes('lamp')?'<div class="pet-lamp" aria-label="포근한 조명"><span></span></div>':''}${p.equipped.includes('sofa')?'<div class="pet-sofa" aria-label="구름 소파"><span></span></div>':''}${p.equipped.includes('clock')?'<div class="pet-clock" aria-label="곰돌이 시계">◷</div>':''}${p.equipped.includes('flowers')?'<div class="pet-flowers" aria-label="봄날 꽃병">🌷</div>':''}${p.equipped.includes('cat')?'<div class="pet-cat" aria-label="고양이 인형">🐱</div>':''}${p.equipped.includes('stars')?'<div class="pet-stars" aria-label="별빛 가랜드">✧ · ★ · ✧ · ★ · ✧</div>':''}<div class="pet-room-label">${esc(p.name)}의 보금자리</div><button type="button" class="pet-character" aria-label="보금이 쓰다듬기" title="마우스로 살살 쓰다듬어 주세요">${petAvatar(p.stage,look,color)}<span class="pet-stroke-hearts" aria-hidden="true">♥ ♡ ♥</span><span class="pet-shadow"></span></button></div>`;}
 function petMood(p){if(p.hunger<45)return '배가 조금 고파요. 같이 밥 먹을까요?';if(p.energy<45)return '잠깐 쉬면서 충전하고 싶어요.';if(p.hygiene<45)return '방을 함께 정리해 볼까요?';return ['오늘부터 우리 함께 지내요!','여기가 내 보금자리예요.','사원증을 달았어요! 같이 공부해요.','든든한 친구가 되어 줄게요.'][p.stage];}
@@ -39,3 +52,11 @@ document.addEventListener('pointermove',e=>{if(!petTouch||e.pointerId!==petTouch
 document.addEventListener('pointerup',e=>{if(!petTouch||e.pointerId!==petTouch.id)return;petTouch.target.classList.remove('is-stroked');petTouch=null;strokePet();});
 document.addEventListener('pointercancel',()=>{petTouch?.target.classList.remove('is-stroked');petTouch=null;});
 document.addEventListener('click',e=>{if(e.detail===0&&e.target.closest('.pet-character'))strokePet();});
+
+(function petBlinkLoop(){
+ setTimeout(()=>{
+  const avatar=document.querySelector('.pet-character .pet-avatar');
+  if(avatar&&!document.hidden&&!petTouch&&!petStrokeBusy){avatar.classList.add('is-blinking');setTimeout(()=>avatar.classList.remove('is-blinking'),170);}
+  petBlinkLoop();
+ },3000+Math.random()*4500);
+})();
