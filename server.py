@@ -11,6 +11,7 @@ import pet
 import meals
 import wiki
 import news
+import privacy
 BASE=Path(__file__).resolve().parent
 DATA=Path(os.environ.get('HF_DATA',str(BASE/'data')));DATA.mkdir(exist_ok=True)
 DB=DATA/'accounts.sqlite3'
@@ -59,6 +60,10 @@ class Handler(SimpleHTTPRequestHandler):
   if not self.path.startswith('/api/'):self.send_header('Cache-Control','no-cache')
   self.send_header('X-Content-Type-Options','nosniff');self.send_header('Referrer-Policy','same-origin');self.send_header('X-Frame-Options','DENY');super().end_headers()
  def reply(self,status,obj,cookie=None):
+  if self.path.startswith('/api/') and self.path not in ['/api/me','/api/state','/api/attendance','/api/pet'] and not self.path.startswith('/api/pet/'):
+   viewer=self.user()
+   if viewer:
+    with db() as c:obj=privacy.filter_response(c,viewer,obj)
   b=json.dumps(obj,ensure_ascii=False).encode();self.send_response(status);self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store');self.send_header('Content-Length',str(len(b)))
   if cookie:self.send_header('Set-Cookie',cookie)
   self.end_headers();self.wfile.write(b)
@@ -152,6 +157,8 @@ class Handler(SimpleHTTPRequestHandler):
    return self.reply(200,{'user':public(u)},f'hf_session={raw}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800'+('; Secure' if SECURE else ''))
   u=self.user()
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
+  with db() as c:private_block=privacy.blocked_mutation(c,u,path,d)
+  if private_block:return self.reply(404,{'error':'요청한 항목을 찾을 수 없습니다.'})
   if pet.post(self,u,d,db):return
   if activity.post(self,u,d,db):return
   if news.post(self,u,d,db):return

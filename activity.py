@@ -1,5 +1,6 @@
 import json,secrets,time
 import pet
+import privacy
 from datetime import datetime,timezone,timedelta
 ZONE=timezone(timedelta(hours=9))
 def today():return datetime.now(ZONE).date().isoformat()
@@ -34,12 +35,14 @@ def award(c,uid,key,amount):
 def get(h,u,db):
  if h.path=='/api/reflex/comments':
   with db() as c:
+   hidden=privacy.hidden(c,u);excluded=','.join(str(uid) for uid in hidden) or 'NULL'
    roots=c.execute('SELECT id FROM reflex_comments WHERE id NOT IN (SELECT comment_id FROM reflex_comment_threads) ORDER BY id DESC LIMIT 100').fetchall()
    ids=[r['id'] for r in roots];rows=[]
    if ids:
     marks=','.join('?' for _ in ids)
-    rows=c.execute(f"SELECT r.*,users.name AS author,t.parent_id,(SELECT COUNT(*) FROM reflex_comment_likes l WHERE l.comment_id=r.id) AS hearts,EXISTS(SELECT 1 FROM reflex_comment_likes l WHERE l.comment_id=r.id AND l.user_id=?) AS liked FROM reflex_comments r JOIN users ON users.id=r.user_id LEFT JOIN reflex_comment_threads t ON t.comment_id=r.id WHERE r.id IN ({marks}) OR t.parent_id IN ({marks}) ORDER BY r.id DESC",(u['id'],*ids,*ids)).fetchall()
-   received=c.execute('SELECT COUNT(*) FROM reflex_comment_likes l JOIN reflex_comments r ON r.id=l.comment_id WHERE r.user_id=?',(u['id'],)).fetchone()[0]
+    like_visibility=f' AND l.user_id NOT IN ({excluded})' if hidden else ''
+    rows=c.execute(f"SELECT r.*,users.name AS author,t.parent_id,(SELECT COUNT(*) FROM reflex_comment_likes l WHERE l.comment_id=r.id{like_visibility}) AS hearts,EXISTS(SELECT 1 FROM reflex_comment_likes l WHERE l.comment_id=r.id AND l.user_id=?) AS liked FROM reflex_comments r JOIN users ON users.id=r.user_id LEFT JOIN reflex_comment_threads t ON t.comment_id=r.id WHERE r.id IN ({marks}) OR t.parent_id IN ({marks}) ORDER BY r.id DESC",(u['id'],*ids,*ids)).fetchall()
+   received=c.execute('SELECT COUNT(*) FROM reflex_comment_likes l JOIN reflex_comments r ON r.id=l.comment_id WHERE r.user_id=?'+(f' AND l.user_id NOT IN ({excluded})' if hidden else ''),(u['id'],)).fetchone()[0]
   h.reply(200,{'comments':[dict(r) for r in rows],'received_hearts':received});return True
  if h.path!='/api/activity':return False
  month=today()[:7]
@@ -57,7 +60,7 @@ def get(h,u,db):
    cleaning=[r for r in cleaning if department and r['department']==department]
    members=[r for r in members if department and r['department']==department]
   history=[dict(r) for r in c.execute('SELECT event_key,day,amount FROM points WHERE user_id=? ORDER BY day DESC LIMIT 30',(u['id'],))]
-  announcements=[dict(r) for r in c.execute('SELECT id,title,body,created FROM announcements ORDER BY id DESC LIMIT 20')]
+  announcements=[dict(r) for r in c.execute('SELECT id,user_id,title,body,created FROM announcements ORDER BY id DESC LIMIT 20')]
   events=[dict(r) for r in c.execute('SELECT id,day,body FROM calendar_events WHERE user_id=? ORDER BY id',(u['id'],))]
   clean_done=c.execute("SELECT COUNT(*) FROM points WHERE user_id=? AND event_key LIKE 'clean:%'",(u['id'],)).fetchone()[0]
  h.reply(200,dict(xp=int(xp),month=month,ranking=ranking,reflex=reflex,cleaning=cleaning,rotations=rotations,members=members,department=department,week=week(),history=history,clean_done=clean_done,announcements=announcements,events=events));return True

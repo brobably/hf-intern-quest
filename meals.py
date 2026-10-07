@@ -53,7 +53,7 @@ def get(h,u,db):
   h.reply(200,{'week':w,'weekly_status':rows});return True
 
  if h.path=='/api/meals/invitations':
-  with db() as c:rows=c.execute("SELECT meals.id,restaurant,event_time,capacity,members,users.name AS author FROM meal_invites JOIN meals ON meals.id=meal_invites.meal_id JOIN users ON users.id=meals.user_id WHERE meal_invites.user_id=? AND meal_invites.status='pending' ORDER BY meals.id DESC",(u['id'],)).fetchall()
+  with db() as c:rows=c.execute("SELECT meals.id,meals.user_id,restaurant,event_time,capacity,members,users.name AS author FROM meal_invites JOIN meals ON meals.id=meal_invites.meal_id JOIN users ON users.id=meals.user_id WHERE meal_invites.user_id=? AND meal_invites.status='pending' ORDER BY meals.id DESC",(u['id'],)).fetchall()
   with db() as c:items=[meal_data(c,r) for r in rows]
   h.reply(200,{'invitations':items});return True
  if urlsplit(h.path).path=='/api/meals/restaurants':

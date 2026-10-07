@@ -2,7 +2,8 @@
 import json,time
 from datetime import datetime,timezone,timedelta
 ZONE=timezone(timedelta(hours=9))
-STAGES=[('새싹집',0),('아기 보금이',32),('인턴 보금이',96),('든든한 보금이',192)]
+STAGES=[('새싹집',0),('아기 보금이',64),('인턴 보금이',192),('든든한 보금이',384)]
+INTERNSHIP_END='2027-02-26'
 ITEMS={
  'color-mint':{'name':'민트 보금이','price':15,'category':'color','icon':'🌿','slot':'color'},
  'color-pink':{'name':'분홍 보금이','price':15,'category':'color','icon':'🌸','slot':'color'},
@@ -52,16 +53,17 @@ def collect(c,uid,p):
   p['coins']+=row['balance'];c.execute('UPDATE pet_coin_wallet SET balance=0 WHERE user_id=?',(uid,))
  return p
 def day(now):return datetime.fromtimestamp(now,ZONE).date().isoformat()
-def initial(name,now):return dict(name=name,growth=0,coins=0,hunger=75,happy=75,energy=75,hygiene=75,updated=now,last_care=0,reward_day=day(now),rewarded=[],owned=[],equipped=[],history=[])
+def initial(name,now):return dict(name=name,growth=0,growth_version=2,coins=0,hunger=75,happy=75,energy=75,hygiene=75,updated=now,last_care=0,reward_day=day(now),rewarded=[],owned=[],equipped=[],history=[])
 def settled(data,now):
  p=dict(data);hours=max(0,min(48,(now-p['updated'])/3600))
+ if p.get('growth_version',1)<2:p['growth']*=2;p['growth_version']=2
  for key,rate in [('hunger',2),('happy',1),('energy',1),('hygiene',1.5)]:p[key]=max(25,p[key]-hours*rate)
  p['updated']=now
  if p['reward_day']!=day(now):p['reward_day']=day(now);p['rewarded']=[]
  return p
-def public(p,now):
+def public(p,now,admin=False):
  p=settled(p,now);stage=max(i for i,(_,goal) in enumerate(STAGES) if p['growth']>=goal)
- return {**p,'stage':stage,'stage_name':STAGES[stage][0],'next_growth':STAGES[stage+1][1] if stage<3 else None,'care_wait':max(0,5-int(now-p['last_care'])),'items':ITEMS,'stages':[{'name':name,'growth':goal} for name,goal in STAGES]}
+ return {**p,'admin_shop':admin,'internship_end':INTERNSHIP_END,'stage':stage,'stage_name':STAGES[stage][0],'next_growth':STAGES[stage+1][1] if stage<3 else None,'care_wait':max(0,5-int(now-p['last_care'])),'items':ITEMS,'stages':[{'name':name,'growth':goal} for name,goal in STAGES]}
 def get(h,u,db):
  if h.path!='/api/pet':return False
  with db() as c:
@@ -69,7 +71,7 @@ def get(h,u,db):
   if row:
    p=collect(c,u['id'],json.loads(row['data']));c.execute('UPDATE intern_pets SET data=? WHERE user_id=?',(json.dumps(p,ensure_ascii=False),u['id']))
   rewards=[dict(r) for r in c.execute('SELECT event_key,day,amount FROM pet_coin_rewards WHERE user_id=? ORDER BY day DESC,event_key LIMIT 12',(u['id'],))]
- h.reply(200,{'pet':{**public(p,time.time()),'coin_history':rewards} if row else None});return True
+ h.reply(200,{'pet':{**public(p,time.time(),u['role']=='admin'),'coin_history':rewards} if row else None});return True
 def post(h,u,d,db):
  if h.path not in ['/api/pet/adopt','/api/pet/care','/api/pet/decorate','/api/pet/rename','/api/pet/stroke']:return False
  now=time.time();message=''
@@ -110,14 +112,23 @@ def post(h,u,d,db):
    else:
     item=d.get('item')
     if item not in ITEMS:h.reply(400,{'error':'소품을 확인해 주세요.'});return True
+    action=d.get('action','toggle')
+    if action not in ['buy','equip','unequip','toggle']:h.reply(400,{'error':'아이템 이용 방법을 확인해 주세요.'});return True
+    if action=='buy' and item in p['owned']:h.reply(409,{'error':'이미 소장한 아이템입니다.'});return True
     if item not in p['owned']:
-     if p['coins']<ITEMS[item]['price']:h.reply(400,{'error':'보금 코인이 부족해요. 오늘의 돌보기를 해 보세요.'});return True
-     p['coins']-=ITEMS[item]['price'];p['owned'].append(item);p['equipped'].append(item);message='새 소품을 방에 놓았어요!'
-    elif item in p['equipped']:p['equipped'].remove(item);message='소품을 보관했어요.'
-    else:p['equipped'].append(item);message='소품을 방에 놓았어요.'
+     if action=='unequip' or (action=='equip' and u['role']!='admin'):h.reply(400,{'error':'먼저 아이템을 소장해 주세요.'});return True
+     price=0 if u['role']=='admin' else ITEMS[item]['price']
+     if p['coins']<price:h.reply(400,{'error':'보금 코인이 부족해요. 출석과 게임으로 코인을 모아 보세요.'});return True
+     p['coins']-=price;p['owned'].append(item)
+    if action=='buy':message='내 소장함에 추가했어요. 언제든 장착할 수 있어요!'
+    elif action=='unequip' or (action=='toggle' and item in p['equipped']):
+     if item in p['equipped']:p['equipped'].remove(item)
+     message='장착을 해제했어요. 아이템은 소장함에 남아 있어요.'
+    else:
+     if item not in p['equipped']:p['equipped'].append(item)
+     message='아이템을 장착했어요!'
     slot=ITEMS[item].get('slot')
     if slot and item in p['equipped']:
      p['equipped']=[key for key in p['equipped'] if key==item or ITEMS.get(key,{}).get('slot')!=slot]
-    if ITEMS[item]['category']=='character':message='보금이의 모습을 바꿨어요!'
    c.execute('UPDATE intern_pets SET data=? WHERE user_id=?',(json.dumps(p,ensure_ascii=False),u['id']))
- h.reply(200,{'pet':public(p,now),'message':message});return True
+ h.reply(200,{'pet':public(p,now,u['role']=='admin'),'message':message});return True

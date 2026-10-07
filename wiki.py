@@ -1,4 +1,5 @@
 import json,base64,binascii
+import privacy
 from urllib.parse import urlsplit,parse_qs
 from datetime import datetime,timezone,timedelta
 
@@ -21,7 +22,9 @@ def get(h,u,db):
  if path=='/api/wiki/image':
   try:did=int(q.get('id',[''])[0]);position=int(q.get('position',[''])[0])
   except ValueError:h.reply(400,{'error':'사진을 확인해 주세요.'});return True
-  with db() as c:row=c.execute('SELECT data FROM wiki_images WHERE document_id=? AND position=?',(did,position)).fetchone()
+  with db() as c:
+   owner=c.execute('SELECT user_id FROM wiki_documents WHERE id=?',(did,)).fetchone()
+   row=c.execute('SELECT data FROM wiki_images WHERE document_id=? AND position=?',(did,position)).fetchone() if owner and privacy.visible(c,u,owner[0]) else None
   if not row:h.reply(404,{'error':'사진을 찾을 수 없습니다.'});return True
   image=base64.b64decode(row['data']);h.send_response(200);h.send_header('Content-Type','image/jpeg');h.send_header('X-Content-Type-Options','nosniff');h.send_header('Cache-Control','private, no-store');h.send_header('Content-Length',str(len(image)));h.end_headers();h.wfile.write(image);return True
  if path=='/api/wiki/document':
@@ -29,6 +32,7 @@ def get(h,u,db):
   except ValueError:h.reply(400,{'error':'문서를 확인해 주세요.'});return True
   with db() as c:
    row=c.execute('SELECT wiki_documents.*,users.name AS author FROM wiki_documents JOIN users ON users.id=wiki_documents.user_id WHERE wiki_documents.id=?',(did,)).fetchone()
+   if row and not privacy.visible(c,u,row['user_id']):row=None
    images=[{'name':r['name'],'url':'/api/wiki/image?id='+str(did)+'&position='+str(r['position'])} for r in c.execute('SELECT name,position FROM wiki_images WHERE document_id=? ORDER BY position',(did,))]
   h.reply(200 if row else 404,{'document':{**dict(row),'images':images}} if row else {'error':'문서를 찾을 수 없습니다.'});return True
  if path!='/api/wiki':return False
@@ -38,10 +42,16 @@ def get(h,u,db):
  if department:where+=' AND department=?';args.append(department)
  if search:where+=' AND LOWER(title) LIKE ?';args.append('%'+search.lower()+'%')
  with db() as c:
+  hidden=privacy.hidden(c,u)
+  visibility=''
+  hidden_args=[]
+  if hidden:
+   visibility=' AND wiki_documents.user_id NOT IN ('+','.join('?' for _ in hidden)+')';hidden_args=list(hidden)
+   where+=visibility;args+=hidden_args
   total=c.execute('SELECT COUNT(*) FROM wiki_documents'+where,args).fetchone()[0]
   page=min(page,max(1,(total+19)//20))
   rows=c.execute('SELECT wiki_documents.id,user_id,title,department,created,users.name AS author FROM wiki_documents JOIN users ON users.id=wiki_documents.user_id'+where+' ORDER BY wiki_documents.id DESC LIMIT 20 OFFSET ?',tuple(args)+((page-1)*20,)).fetchall()
-  groups=[dict(r) for r in c.execute('SELECT department,COUNT(*) AS count FROM wiki_documents GROUP BY department')];options=departments(c)
+  groups=[dict(r) for r in c.execute('SELECT department,COUNT(*) AS count FROM wiki_documents WHERE 1=1'+visibility+' GROUP BY department',hidden_args)];options=departments(c)
  h.reply(200,{'documents':[dict(r) for r in rows],'total':total,'page':page,'pages':max(1,(total+19)//20),'departments':options,'groups':groups});return True
 
 def post(h,u,d,db):
