@@ -1,0 +1,62 @@
+"""Account-scoped Bogeumi care game. Growth and purchases are server-authoritative."""
+import json,time
+from datetime import datetime,timezone,timedelta
+ZONE=timezone(timedelta(hours=9))
+STAGES=[('새싹집',0),('아기 보금이',32),('인턴 보금이',96),('든든한 보금이',192)]
+ITEMS={'plant':{'name':'작은 화분','price':12},'books':{'name':'인턴 책장','price':18},'lamp':{'name':'포근한 조명','price':24}}
+ACTIONS={'feed':('밥 먹기',{'hunger':25,'happy':5}),'rest':('쉬기',{'energy':30}),'clean':('방 청소',{'hygiene':30,'happy':5}),'study':('함께 공부',{'happy':15,'energy':-10,'hunger':-5})}
+def initialize(c):c.execute('CREATE TABLE IF NOT EXISTS intern_pets(user_id INTEGER PRIMARY KEY,data TEXT NOT NULL)')
+def day(now):return datetime.fromtimestamp(now,ZONE).date().isoformat()
+def initial(name,now):return dict(name=name,growth=0,coins=0,hunger=75,happy=75,energy=75,hygiene=75,updated=now,last_care=0,reward_day=day(now),rewarded=[],owned=[],equipped=[],history=[])
+def settled(data,now):
+ p=dict(data);hours=max(0,min(48,(now-p['updated'])/3600))
+ for key,rate in [('hunger',2),('happy',1),('energy',1),('hygiene',1.5)]:p[key]=max(25,p[key]-hours*rate)
+ p['updated']=now
+ if p['reward_day']!=day(now):p['reward_day']=day(now);p['rewarded']=[]
+ return p
+def public(p,now):
+ p=settled(p,now);stage=max(i for i,(_,goal) in enumerate(STAGES) if p['growth']>=goal)
+ return {**p,'stage':stage,'stage_name':STAGES[stage][0],'next_growth':STAGES[stage+1][1] if stage<3 else None,'care_wait':max(0,5-int(now-p['last_care'])),'items':ITEMS,'stages':[{'name':name,'growth':goal} for name,goal in STAGES]}
+def get(h,u,db):
+ if h.path!='/api/pet':return False
+ with db() as c:row=c.execute('SELECT data FROM intern_pets WHERE user_id=?',(u['id'],)).fetchone()
+ h.reply(200,{'pet':public(json.loads(row['data']),time.time()) if row else None});return True
+def post(h,u,d,db):
+ if h.path not in ['/api/pet/adopt','/api/pet/care','/api/pet/decorate','/api/pet/rename']:return False
+ now=time.time();message=''
+ with db() as c:
+  c.execute('BEGIN IMMEDIATE');row=c.execute('SELECT data FROM intern_pets WHERE user_id=?',(u['id'],)).fetchone()
+  if h.path=='/api/pet/adopt':
+   if row:h.reply(409,{'error':'이미 함께 지내는 보금이가 있어요.'});return True
+   name=d.get('name','보금이')
+   if not isinstance(name,str) or not 1<=len(name.strip())<=12:h.reply(400,{'error':'이름은 1~12자로 입력해 주세요.'});return True
+   p=initial(name.strip(),now);c.execute('INSERT INTO intern_pets(user_id,data) VALUES(?,?)',(u['id'],json.dumps(p,ensure_ascii=False)));message='우리의 첫 보금자리가 생겼어요!'
+  else:
+   if not row:h.reply(404,{'error':'먼저 보금이를 맞이해 주세요.'});return True
+   p=settled(json.loads(row['data']),now)
+   if h.path=='/api/pet/care':
+    action=d.get('action')
+    if action not in ACTIONS:h.reply(400,{'error':'돌보기 방법을 확인해 주세요.'});return True
+    if now-p['last_care']<5:h.reply(429,{'error':'잠깐만요! 5초 뒤 다시 돌볼 수 있어요.'});return True
+    title,effects=ACTIONS[action]
+    for key,amount in effects.items():p[key]=max(25,min(100,p[key]+amount))
+    reward=action not in p['rewarded'];before=max(i for i,(_,goal) in enumerate(STAGES) if p['growth']>=goal)
+    if reward:p['growth']+=8;p['coins']+=5;p['rewarded'].append(action)
+    p['last_care']=now;message=title+' 완료! '+('성장 +8 · 보금 코인 +5' if reward else '기분이 좋아졌어요. 오늘의 성장 보상은 이미 받았어요.')
+    after=max(i for i,(_,goal) in enumerate(STAGES) if p['growth']>=goal)
+    if after>before:message+=' · '+STAGES[after][0]+'로 성장했어요!'
+    p['history']=([{'text':title+(' · 성장 +8' if reward else ''),'time':datetime.fromtimestamp(now,ZONE).isoformat()}]+p['history'])[:12]
+   elif h.path=='/api/pet/rename':
+    name=d.get('name')
+    if not isinstance(name,str) or not 1<=len(name.strip())<=12:h.reply(400,{'error':'이름은 1~12자로 입력해 주세요.'});return True
+    p['name']=name.strip();message='새 이름을 저장했어요.'
+   else:
+    item=d.get('item')
+    if item not in ITEMS:h.reply(400,{'error':'소품을 확인해 주세요.'});return True
+    if item not in p['owned']:
+     if p['coins']<ITEMS[item]['price']:h.reply(400,{'error':'보금 코인이 부족해요. 오늘의 돌보기를 해 보세요.'});return True
+     p['coins']-=ITEMS[item]['price'];p['owned'].append(item);p['equipped'].append(item);message='새 소품을 방에 놓았어요!'
+    elif item in p['equipped']:p['equipped'].remove(item);message='소품을 보관했어요.'
+    else:p['equipped'].append(item);message='소품을 방에 놓았어요.'
+   c.execute('UPDATE intern_pets SET data=? WHERE user_id=?',(json.dumps(p,ensure_ascii=False),u['id']))
+ h.reply(200,{'pet':public(p,now),'message':message});return True

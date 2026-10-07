@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from datetime import datetime,timezone,timedelta
 from storage import connect,IntegrityError
 import activity
+import pet
 import meals
 import wiki
 import news
@@ -25,6 +26,7 @@ with db() as c:
  c.execute('CREATE TABLE IF NOT EXISTS attendance(user_id INTEGER NOT NULL,day TEXT NOT NULL,PRIMARY KEY(user_id,day))')
  c.execute("CREATE TABLE IF NOT EXISTS posts(id INTEGER PRIMARY KEY,kind TEXT NOT NULL,user_id INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,link TEXT NOT NULL DEFAULT '',event_day TEXT NOT NULL DEFAULT '',created TEXT NOT NULL,members TEXT NOT NULL DEFAULT '[]',replies TEXT NOT NULL DEFAULT '[]')")
  c.execute("CREATE TABLE IF NOT EXISTS user_profiles(user_id INTEGER PRIMARY KEY,department TEXT NOT NULL DEFAULT '',rejection_reason TEXT NOT NULL DEFAULT '')")
+ pet.initialize(c)
  activity.initialize(c)
  meals.initialize(c)
  wiki.initialize(c)
@@ -76,6 +78,7 @@ class Handler(SimpleHTTPRequestHandler):
    return self.reply(200,{'user':public(u) if u else None,'setup':setup})
   u=self.user()
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
+  if pet.get(self,u,db):return
   if activity.get(self,u,db):return
   if meals.get(self,u,db):return
   if wiki.get(self,u,db):return
@@ -149,6 +152,7 @@ class Handler(SimpleHTTPRequestHandler):
    return self.reply(200,{'user':public(u)},f'hf_session={raw}; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800'+('; Secure' if SECURE else ''))
   u=self.user()
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
+  if pet.post(self,u,d,db):return
   if activity.post(self,u,d,db):return
   if news.post(self,u,d,db):return
   if path=='/api/admin/department':
@@ -208,7 +212,7 @@ class Handler(SimpleHTTPRequestHandler):
    s=d.get('state');allowed={'tasks','clean','lunch','wiki','best','favorites'}
    if not isinstance(s,dict) or set(s)-allowed:return self.reply(400,{'error':'저장 내용을 확인해 주세요.'})
    if any(not isinstance(s.get(k,[]),list) for k in ['tasks','clean','lunch','wiki']):return self.reply(400,{'error':'저장 형식이 올바르지 않습니다.'})
-   if 'favorites' in s and (not isinstance(s['favorites'],list) or len(s['favorites'])>15 or any(x not in ['','games','manual-ai','glossary','registry-guide','checklist','cleaning','lunch','reflex','wiki','study','articles','jobs','qna','suggestions'] for x in s['favorites'])):return self.reply(400,{'error':'즐겨찾기 목록을 확인해 주세요.'})
+   if 'favorites' in s and (not isinstance(s['favorites'],list) or len(s['favorites'])>16 or any(x not in ['','games','pet','manual-ai','glossary','registry-guide','checklist','cleaning','lunch','reflex','wiki','study','articles','jobs','qna','suggestions'] for x in s['favorites'])):return self.reply(400,{'error':'즐겨찾기 목록을 확인해 주세요.'})
    with db() as c:
     c.execute('BEGIN IMMEDIATE')
     previous=json.loads(c.execute('SELECT state FROM users WHERE id=?',(u['id'],)).fetchone()[0])
