@@ -116,6 +116,14 @@ class Handler(SimpleHTTPRequestHandler):
      with db() as c:
       c.execute('BEGIN IMMEDIATE')
       if is_admin and c.execute("SELECT COUNT(*) FROM users WHERE role='admin'").fetchone()[0]:return self.reply(409,{'error':'관리자 설정이 완료되어 있습니다.'})
+      existing=c.execute('SELECT * FROM users WHERE employee=?',(employee,)).fetchone()
+      if not is_admin and existing and existing['status']=='rejected' and existing['role']=='intern':
+       if not hmac.compare_digest(digest(password,existing['salt']),existing['hash']):return self.reply(403,{'error':'재신청하려면 이전 가입 신청에 사용한 비밀번호를 입력해 주세요. 기억나지 않으면 관리자에게 문의해 주세요.'})
+       c.execute("UPDATE users SET name=?,salt=?,hash=?,status='pending' WHERE id=?",(name.strip(),salt,hashed,existing['id']))
+       c.execute('INSERT OR IGNORE INTO user_profiles(user_id) VALUES(?)',(existing['id'],))
+       c.execute("UPDATE user_profiles SET department=?,rejection_reason='' WHERE user_id=?",(department.strip(),existing['id']))
+       c.execute('DELETE FROM sessions WHERE user_id=?',(existing['id'],))
+       return self.reply(201,{'message':'가입 재신청이 완료되었습니다. 관리자 승인 후 로그인할 수 있습니다.'})
       c.execute('INSERT INTO users(employee,name,salt,hash,status,role) VALUES(?,?,?,?,?,?)',(employee,name.strip(),salt,hashed,'approved' if is_admin else 'pending','admin' if is_admin else 'intern'))
       uid=c.execute('SELECT id FROM users WHERE employee=?',(employee,)).fetchone()[0]
       c.execute('INSERT INTO user_profiles(user_id,department) VALUES(?,?)',(uid,department.strip()))
@@ -126,7 +134,7 @@ class Handler(SimpleHTTPRequestHandler):
    if not u or not hmac.compare_digest(computed,u['hash']):return self.reply(401,{'error':'사원번호 또는 비밀번호가 맞지 않습니다.'})
    if u['status']=='rejected':
     with db() as c:profile=c.execute('SELECT rejection_reason FROM user_profiles WHERE user_id=?',(u['id'],)).fetchone()
-    return self.reply(403,{'error':'가입 신청이 거절되었습니다. 사유: '+(profile[0] if profile and profile[0] else '관리자에게 문의해 주세요.')})
+    return self.reply(403,{'error':'가입 신청이 거절되었습니다. 사유: '+(profile[0] if profile and profile[0] else '관리자에게 문의해 주세요.')+' 회원가입에서 정보를 수정하고 기존 비밀번호로 다시 신청할 수 있습니다.'})
    if u['status']!='approved':return self.reply(403,{'error':'관리자 승인 대기 중입니다.' if u['status']=='pending' else '가입 신청이 거절되었습니다. 관리자에게 문의해 주세요.'})
    raw=secrets.token_urlsafe(32)
    with db() as c:
