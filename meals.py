@@ -76,7 +76,7 @@ def get(h,u,db):
   h.reply(200,{'day':day,'meals':result});return True
  if h.path!='/api/meals':return False
  with db() as c:
-  rows=c.execute("SELECT meals.*,users.name AS author,COALESCE(meal_places.address,'') AS address,COALESCE(meal_places.url,'') AS url FROM meals JOIN users ON users.id=meals.user_id LEFT JOIN meal_places ON meals.id=meal_places.meal_id ORDER BY event_time DESC LIMIT 100").fetchall()
+  rows=c.execute("SELECT meals.*,users.name AS author,COALESCE(meal_places.address,'') AS address,COALESCE(meal_places.url,'') AS url FROM meals JOIN users ON users.id=meals.user_id LEFT JOIN meal_places ON meals.id=meal_places.meal_id ORDER BY meals.id DESC LIMIT 100").fetchall()
   weekly_status=weekly_rows(c,activity.week())
   confirmations=[dict(r) for r in c.execute('SELECT meal_id,user_id FROM meal_confirmations')]
   restaurants=[r[0] for r in c.execute('SELECT DISTINCT restaurant FROM meals ORDER BY restaurant LIMIT 500')]
@@ -136,7 +136,7 @@ def post(h,u,d,db):
    before=c.execute('SELECT COALESCE(SUM(amount),0) FROM points WHERE user_id=?',(u['id'],)).fetchone()[0]
    c.execute('INSERT OR IGNORE INTO meal_confirmations(meal_id,user_id) VALUES(?,?)',(mid,u['id']))
    confirmed=[r[0] for r in c.execute('SELECT user_id FROM meal_confirmations WHERE meal_id=?',(mid,))]
-   if len(confirmed)>=2:
+   if len(confirmed)>=len(json.loads(meal['members'])):
     day=activity.today()
     for uid in confirmed:
      if not c.execute('SELECT user_id FROM meal_rewards WHERE meal_id=? AND user_id=?',(mid,uid)).fetchone():
@@ -145,7 +145,7 @@ def post(h,u,d,db):
      for other in confirmed:
       if other!=uid:activity.award(c,uid,'meal-new:'+str(other),5)
    after=c.execute('SELECT COALESCE(SUM(amount),0) FROM points WHERE user_id=?',(u['id'],)).fetchone()[0]
-  h.reply(200,{'ok':True,'earned':int(after-before),'confirmed':len(confirmed)});return True
+  h.reply(200,{'ok':True,'earned':int(after-before),'confirmed':len(confirmed),'total':len(json.loads(meal['members'])),'complete':len(confirmed)>=len(json.loads(meal['members']))});return True
  if h.path=='/api/meals/availability':
   mid=d.get('id')
   if type(mid)!=int or not valid_days(d.get('days')):h.reply(400,{'error':'가능한 요일을 선택해 주세요.'});return True
