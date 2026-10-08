@@ -383,3 +383,14 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 @media(prefers-reduced-motion:reduce){.pet-room .pet-character,.pet-room .pet-character .pet-avatar{animation:none}}
 
 .pet-avatar.has-pet-rig>.pet-integrated-frame:not(.pet-rig-canvas){visibility:hidden}.pet-avatar.has-pet-rig>.pet-rig-canvas{background:none;clip-path:none;opacity:1!important;width:100%;height:100%;pointer-events:none}
+
+/* Stable toy character: no stretch, squash or perpetual rubbery sway. */
+.pet-room .pet-character .pet-avatar{animation:none;transform:none}.pet-room .pet-character.is-stroked .pet-avatar{animation:pet-gentle-nod .6s ease-out 1}
+@keyframes pet-gentle-nod{0%,100%{transform:translateY(0)}35%{transform:translateY(2px)}65%{transform:translateY(-1px)}}
+@keyframes pet-room-wander{0%,100%{translate:0 0;rotate:0deg}22%,30%{translate:-42% 0;rotate:0deg}64%,74%{translate:42% 0;rotate:0deg}90%{translate:12% 0;rotate:0deg}}
+@media(prefers-reduced-motion:reduce){.pet-room .pet-character.is-stroked .pet-avatar{animation:none}}
+
+/* Real generated poses own the expression, hands and worn accessories. */
+.pet-room .pet-character .pet-pose-frame{background-image:var(--pet-sheet)!important;background-size:var(--pet-idle-size)!important;background-position:var(--pet-idle-position)!important;clip-path:var(--pet-idle-clip)!important}
+.pet-room .pet-character .pet-avatar,.pet-room .pet-character.is-stroked .pet-avatar{animation:none!important;transform:none!important}
+.pet-room .pet-character .pet-idle-frame{background-image:var(--pet-sheet)!important;background-size:var(--pet-idle-size)!important;background-position:var(--pet-idle-position)!important;clip-path:var(--pet-idle-clip)!important}

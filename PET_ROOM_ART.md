@@ -92,3 +92,12 @@ Replaced whole-image expression swaps with a WebGL mesh using the original idle 
 Eyes close continuously in 225 ms; the same source pixels and palette filter remain throughout. The mouth rests partly closed, smoothly opens during petting, and the baby retains its pacifier with gentle sucking motion. Hands move subtly, feet alternate according to actual room travel speed; petting relaxes eyes and lifts hands. Sleep closes eyes. The renderer pauses when hidden, runs at 30 fps, honors reduced motion, cleans up old GPU resources after rerenders and retains the original static character if WebGL is unavailable.
 
 Validation: syntax checks passed; browser rendered all 20 stage/color pairs with combined accessories without errors. Blink, happy response and movement uniforms were inspected in the local fixture.
+
+
+## Generated whole-outfit motion — 2026-10-08
+
+Supersedes the mesh and repainted eye approaches above. Built-in Imagegen produced 24 transparent PNG atlases: `dist/bogeumi-pose-{idle,half,blink,walkA,walkB,happy}-{0,1,2,3}.png`. Each contains 40 full accessory combinations, for 960 painted poses. All five character colors reuse these exact frames with the existing consistent color filters; equipment is drawn together with the body, never attached as a separate moving overlay. Generated alpha and pixels are preserved unchanged.
+
+Prompt set: edit the matching original stage atlas, preserve all 40 costumes, order, canvas, blue roof, cream skin, clay material and lighting. Idle: open eyes and small closed relaxed mouth, baby preserves pacifier. Half/blink: half lowered eyelids or two relaxed closed eyelid lines, round glasses remain round and all body/accessories unchanged. WalkA/B: opposite actual stepping feet and hands; bag strap stays on shoulder, scarf and keychain follow the step, headwear and glasses stay fixed. Happy: curved smiling eyes, small delighted smile and hands lifted toward cheeks, pacifier retained. No distortions, new accessories, text or background.
+
+`dist/pet-poses.json` aligns the same window landmark at fixed canvas scale across every pose. `dist/pet-motion.js` preloads all six stage atlases and plays idle, half/closed/half blink, alternating opposite footsteps during room travel, and happy reaction on petting. No mesh, eye painting, breathing scale or accessory warp remains. Room movement phase and all gameplay/equipment state are preserved. Reduced-motion users receive static idle plus explicit interaction reactions.
