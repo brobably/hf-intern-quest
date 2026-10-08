@@ -84,3 +84,11 @@ Half-frame prompt: Preserve the exact atlas and every accessory, mouth and pacif
 Blink playback: half 55 ms, closed 90 ms, half 55 ms, idle; random 4–8.5 second intervals after image decoding. Interrupted by petting, room activities, furniture editing or hidden document. Reduced-motion preference skips blink and body movement. Breathing is a small 4.6 second pulse, with subtle directional lean during 18 second room wandering. Movement phase survives page rerender; petting reacts immediately and settles gently.
 
 Validation: JavaScript syntax passed. Browser QA displayed all four stages in all five colors with combined headset, scarf and glasses, verified half/closed frames and body motion names; no browser console errors.
+
+
+## Single-texture motion correction — 2026-10-08
+Replaced whole-image expression swaps with a WebGL mesh using the original idle atlas. Generated expression sheets are no longer used in the room. `dist/pet-motion.js` clips one original outfit texture and deforms only measured eye/mouth/hand/foot regions. `dist/pet-rig.json` stores 160 outfit-specific eye and mouth anchors derived from original pixels. No new image generation or color grading was used for this correction.
+
+Eyes close continuously in 225 ms; the same source pixels and palette filter remain throughout. The mouth rests partly closed, smoothly opens during petting, and the baby retains its pacifier with gentle sucking motion. Hands move subtly, feet alternate according to actual room travel speed; petting relaxes eyes and lifts hands. Sleep closes eyes. The renderer pauses when hidden, runs at 30 fps, honors reduced motion, cleans up old GPU resources after rerenders and retains the original static character if WebGL is unavailable.
+
+Validation: syntax checks passed; browser rendered all 20 stage/color pairs with combined accessories without errors. Blink, happy response and movement uniforms were inspected in the local fixture.
