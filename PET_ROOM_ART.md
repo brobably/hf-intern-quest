@@ -72,3 +72,15 @@ Prompt set: edit the existing room/furniture reference, preserve the exact camer
 Placement mode: pointer drag/touch, accessible furniture selector and arrow keys, save/cancel/default reset. Account-scoped server storage retains positions through unequip and re-equip. Wall ornaments stay on the wall; floor props remain within the floor band. Object aspect ratios remain unchanged.
 
 Scale hierarchy: sofa 56% room width; standing lamp 23%; bookshelf 20%; low table 30%; small watering can 7.5%; piggy bank 5.5%; teacup 5%. Shop/inventory previews use corresponding relative sizes rather than giving every object the same height. Real furniture proportions informed the stylized scale: [IKEA two-seat sofa guide, widths 164–180 cm](https://www.ikea.com/kr/ko/files/pdf/28/e3/28e34c3c/landskrona_buying_guide_a4.pdf). Gameplay room uses readable, approximate proportions rather than architectural measurements.
+
+
+## Natural motion — 2026-10-08
+Generated eight transparent original PNG atlases: `dist/bogeumi-blink-half-{0..3}.png` and `dist/bogeumi-blink-closed-{0..3}.png`. Each contains the existing 40 accessory combinations. All five colors reuse the same whole-character frames through the existing color filters. Pixels are preserved; CSS crop bounds align center, height and feet to the idle frame.
+
+Closed-frame prompt: Preserve the exact 5-column by 8-row atlas, canvas, placement, silhouette, accessories, lighting, mouth and baby pacifier. Change only both eyes of every character to gently fully closed natural resting eyelids, including eyes behind glasses. Transparent background, no crop, text or new objects.
+
+Half-frame prompt: Preserve the exact atlas and every accessory, mouth and pacifier. Change only every pair of eyes to half closed, upper flesh-colored eyelid lowered halfway over the pupil, including glasses rows. Preserve transparency and frame ordering.
+
+Blink playback: half 55 ms, closed 90 ms, half 55 ms, idle; random 4–8.5 second intervals after image decoding. Interrupted by petting, room activities, furniture editing or hidden document. Reduced-motion preference skips blink and body movement. Breathing is a small 4.6 second pulse, with subtle directional lean during 18 second room wandering. Movement phase survives page rerender; petting reacts immediately and settles gently.
+
+Validation: JavaScript syntax passed. Browser QA displayed all four stages in all five colors with combined headset, scarf and glasses, verified half/closed frames and body motion names; no browser console errors.
