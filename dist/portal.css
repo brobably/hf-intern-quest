@@ -295,3 +295,16 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 
 /* Expression changes use a complete painted character, never separate eye masks. */
 .pet-character.is-stroked .pet-integrated-frame,.pet-integrated-avatar.is-blinking>.pet-integrated-frame{background-image:var(--pet-smile-sheet);clip-path:var(--pet-smile-clip)}
+
+/* Room surfaces and complete sprite bounds share one consistent coordinate system. */
+.pet-room{height:420px;container-type:inline-size}.pet-room-wall{bottom:43%}.pet-floor{top:57%}.pet-room .pet-rug{left:26%;width:48%;bottom:9%;height:17%}
+.pet-room-prop{top:auto;transform:translateX(-50%);max-width:none}.pet-room-prop .pet-prop{width:100%}
+.pet-room-prop.is-floor::after{content:'';position:absolute;left:16%;right:16%;bottom:1%;height:5%;border-radius:50%;background:#66534230;filter:blur(3px);z-index:-1}
+.pet-room-prop.is-wall .pet-prop{filter:drop-shadow(0 2px 2px #46576730)}.pet-room-prop.is-floor .pet-prop{filter:drop-shadow(0 2px 1px #66534222)}
+.pet-room.has-painting .pet-wall-frame{display:none}.pet-room .pet-window{left:7%;top:8%;width:16%;height:25%}.pet-room .pet-wall-frame{right:22%;top:12%;width:17%}
+.pet-room .pet-character{width:42%;height:auto;aspect-ratio:1;bottom:15%;left:50%;z-index:4;animation:pet-room-drift 22s ease-in-out infinite}.pet-room .pet-avatar{width:100%;height:100%}.pet-shadow{width:42%;left:29%;bottom:2%;height:5%}
+@keyframes pet-room-drift{0%,100%{translate:0 0}25%{translate:-8cqw -5px}55%{translate:5cqw -14px}80%{translate:8cqw -4px}}
+.pet-integrated-frame{background-size:var(--pet-idle-size);background-position:var(--pet-idle-position);clip-path:var(--pet-idle-clip)}
+.pet-character.is-stroked .pet-integrated-frame,.pet-integrated-avatar.is-blinking>.pet-integrated-frame{background-size:var(--pet-smile-size);background-position:var(--pet-smile-position);clip-path:var(--pet-smile-clip)}
+@media(max-width:550px){.pet-room{height:340px}.pet-room .pet-character{width:46%;bottom:17%}.pet-room .pet-window{border-width:5px}.pet-room .pet-wall-frame{font-size:10px;padding:8px 4px;border-width:3px}}
+@media(prefers-reduced-motion:reduce){.pet-room .pet-character{animation:none}}

@@ -1,5 +1,9 @@
 # Bogeumi complete equipment paintings
 
+## Whole-frame and room repair — 2026-10-08
+
+Replaced fixed grid-cell display crops with full connected-character outlines and fitted bounding viewports for idle and smiling atlases. Some characters extend past their nominal cells; the old display cut the left roof/paw at those boundaries. Both expressions now share a padded viewport per costume, preserving whole silhouettes and stable positioning. No artwork pixels were altered. Furniture uses fitted full-object viewports from the existing art, bottom-aligned anchors, separate wall and floor placements, contact shadows and depth order. Responsive room-relative movement stays within safe margins.
+
 ## Expression repair — 2026-10-08
 
 Built-in imagegen edit mode created four complete smiling atlases, 40 costumes per stage. Assets: dist/bogeumi-smile-0.webp through dist/bogeumi-smile-3.webp; matching PNG originals retained locally. Each target was the same-stage bogeumi-integrated PNG. The same palette filter applies to idle and smiling paintings. Petting and the brief random blink select the complete closed-eye painting; no SVG eye masks, cream covering discs or independently positioned eyes remain. Alpha analysis only computes clipping outlines; artwork pixels are not edited. WebP encoding preserves dimensions and transparency (quality 92).
