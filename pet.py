@@ -2,7 +2,7 @@
 import json,time
 from datetime import datetime,timezone,timedelta
 ZONE=timezone(timedelta(hours=9))
-STAGES=[('새싹집',0),('아기 보금이',64),('인턴 보금이',192),('든든한 보금이',384)]
+STAGES=[('새싹집',0),('꼬마 보금이',64),('인턴 보금이',192),('든든한 보금이',384)]
 INTERNSHIP_END='2027-02-26'
 ITEMS={
  'color-mint':{'name':'민트 보금이','price':15,'category':'color','icon':'🌿','slot':'color'},

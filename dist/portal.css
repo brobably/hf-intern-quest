@@ -329,3 +329,20 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 @media(max-width:550px){.pet-room{height:auto;min-height:280px;aspect-ratio:1.26}.pet-room .pet-character{bottom:14%}}
 
 .pet-room .pet-rug,.pet-room.rug-pink .pet-rug,.pet-room.rug-mint .pet-rug{height:auto;background-image:url(bogeumi-rugs-v2.png);background-color:transparent;border:0;border-radius:0;box-shadow:none;background-repeat:no-repeat;bottom:7%;width:49%;left:27%}
+
+/* Baby silhouette and a layered dollhouse composition. */
+.pet-room-backdrop{background-image:url(bogeumi-room-v3.png?v=2);filter:saturate(.82)}
+.pet-integrated-avatar,.pet-stage-sprite{filter:url(#pet-clean-edge)}
+.pet-room .pet-character{width:39%;bottom:10%}
+.pet-room .pet-growth-0{width:30%;bottom:12%}
+.pet-room .pet-growth-1{width:36%;bottom:10%}
+.pet-room .pet-growth-2{width:39%}
+.pet-room .pet-growth-3{width:42%}
+.pet-room .prop-sofa{z-index:2!important}
+.pet-room .pet-character:focus:not(:focus-visible){outline:0;box-shadow:none}
+.pet-room .pet-character:focus-visible{outline:2px dashed #9c8870;outline-offset:3px;border-radius:45%}
+.pet-room .pet-character{border:0;background:transparent;box-shadow:none}
+@keyframes pet-room-drift{0%,100%{translate:0 0}25%{translate:-3cqw -2px}55%{translate:2cqw -4px}80%{translate:3cqw -1px}}
+
+.pet-room{min-height:0}
+
