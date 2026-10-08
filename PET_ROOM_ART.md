@@ -101,3 +101,16 @@ Supersedes the mesh and repainted eye approaches above. Built-in Imagegen produc
 Prompt set: edit the matching original stage atlas, preserve all 40 costumes, order, canvas, blue roof, cream skin, clay material and lighting. Idle: open eyes and small closed relaxed mouth, baby preserves pacifier. Half/blink: half lowered eyelids or two relaxed closed eyelid lines, round glasses remain round and all body/accessories unchanged. WalkA/B: opposite actual stepping feet and hands; bag strap stays on shoulder, scarf and keychain follow the step, headwear and glasses stay fixed. Happy: curved smiling eyes, small delighted smile and hands lifted toward cheeks, pacifier retained. No distortions, new accessories, text or background.
 
 `dist/pet-poses.json` aligns the same window landmark at fixed canvas scale across every pose. `dist/pet-motion.js` preloads all six stage atlases and plays idle, half/closed/half blink, alternating opposite footsteps during room travel, and happy reaction on petting. No mesh, eye painting, breathing scale or accessory warp remains. Room movement phase and all gameplay/equipment state are preserved. Reduced-motion users receive static idle plus explicit interaction reactions.
+
+
+## Generated motion revision, 2026-10-08
+
+The flight player displays a single opaque whole-costume bitmap at a time. Removed the expression crossfade that ghosted eyes and duplicated limbs. No mesh deformation, face overlays or stretching is used. Positional room travel remains continuous; actual hand, foot, mouth and directional pose changes come from generated images.
+
+Built-in Imagegen edit mode; transparent originals copied without pixel modifications to `dist/bogeumi-motion-v3-{pose}-{stage}.png`. Eleven poses for four growth stages, each with the same 40 head/body/glasses combinations. The five existing palettes apply identically to every whole-costume frame.
+
+Prompt set: `PET_MOTION_PROMPTS.json`. Canonical neutral poses preserve the complete roof, chimney, materials, colors, costume ordering and rigid eyewear. Flight poses 0–7 make small progressive hand/foot/mouth changes and turns toward each travel direction. Half/closed eyelids and happy petting expressions are drawn into the complete character. Baby retains its pacifier. Every prompt explicitly requires exactly two hands and two feet, repositioning original hands rather than adding new ones. The first baby flight draft with duplicated hands was discarded.
+
+Analytical alpha-component bounds and the painted window landmark align frames without modifying generated pixels. Bounds checks protect full roofs and prevent neighboring atlas cells appearing in the character frame. QA covers both directional cycles, crisp blinking, petting, costume changes, four stages and five colors.
+
+Baby anatomy repair: the original right/left peak flying poses were regenerated with a normal torso reference. The extra central under-chin sphere was removed; two original side hands and two feet remain. Both repaired peak poses are retained in playback. No motion frames are skipped or replaced with another pose.

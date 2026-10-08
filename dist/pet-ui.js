@@ -118,4 +118,4 @@ document.addEventListener('pointerup',e=>{if(petLayoutDrag?.id===e.pointerId)pet
 document.addEventListener('keydown',e=>{if(!petLayoutEditing||petBusy||!petLayoutSelected||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)||e.target.matches('input,select,textarea'))return;const el=document.querySelector(`[data-room-item="${petLayoutSelected}"]`);if(!el)return;e.preventDefault();const step=e.shiftKey?3:.7;petMoveLayout(el,parseFloat(el.style.left)+(e.key==='ArrowLeft'?-step:e.key==='ArrowRight'?step:0),parseFloat(el.style.bottom)+(e.key==='ArrowUp'?step:e.key==='ArrowDown'?-step:0));});
 window.addEventListener('hashchange',()=>{petLayoutEditing=false;petLayoutDrag=null;petLayoutSelected='';});
 
-const petMotionScript=document.createElement("script");petMotionScript.src="pet-motion.js?v=20261008-flight";document.body.append(petMotionScript);
+const petMotionScript=document.createElement("script");petMotionScript.src="pet-motion.js?v=20261008-motion-v3";document.body.append(petMotionScript);

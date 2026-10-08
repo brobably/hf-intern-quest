@@ -394,7 +394,7 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 .pet-room .pet-character{transform-origin:50% 65%;will-change:translate,rotate;animation:none;translate:var(--pet-flight-x,0) var(--pet-flight-y,-10%);rotate:var(--pet-flight-lean,0deg)}
 @keyframes pet-room-wander{0%,100%{translate:0 -8%;rotate:0deg}12.5%{translate:32% -14%;rotate:7deg}25%{translate:42% -19%;rotate:0deg}37.5%{translate:32% -14%;rotate:-7deg}50%{translate:0 -8%;rotate:-7deg}62.5%{translate:-32% -14%;rotate:-7deg}75%{translate:-42% -19%;rotate:0deg}87.5%{translate:-32% -14%;rotate:7deg}}
 @media(prefers-reduced-motion:reduce){.pet-room .pet-character{animation:none;will-change:auto}}
-.pet-room .pet-integrated-frame{transition:opacity 75ms linear}
+.pet-room .pet-integrated-frame{transition:none!important}
 .pet-room .pet-character .pet-pose-frame{background-image:var(--pet-sheet)!important;background-size:var(--pet-idle-size)!important;background-position:var(--pet-idle-position)!important;clip-path:var(--pet-idle-clip)!important}
 .pet-room .pet-character .pet-avatar,.pet-room .pet-character.is-stroked .pet-avatar{animation:none!important;transform:none!important}
 .pet-room .pet-character .pet-idle-frame{background-image:var(--pet-sheet)!important;background-size:var(--pet-idle-size)!important;background-position:var(--pet-idle-position)!important;clip-path:var(--pet-idle-clip)!important}
