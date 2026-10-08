@@ -346,3 +346,19 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 
 .pet-room{min-height:0}
 
+
+/* One molded-toy art set, preserving each item's measured proportions. */
+.pet-room-backdrop{background-image:url(bogeumi-room-v4.png);filter:none}
+.pet-furniture-art{background-image:url(bogeumi-furniture-v4.png)!important}
+.pet-room .pet-rug,.pet-room.rug-pink .pet-rug,.pet-room.rug-mint .pet-rug{background-image:url(bogeumi-rugs-v4.png);width:52%;left:25%;bottom:7%}
+.pet-room .pet-floor{inset:59.5% 0 0}
+.pet-room .pet-room-wall{inset:0 0 40.5%}
+.pet-room-prop .pet-furniture-art{filter:drop-shadow(1px 2px 1px #71553516)}
+.pet-room-prop.is-wall .pet-furniture-art{filter:drop-shadow(1px 1px 1px #71553516)}
+.pet-room-prop.is-floor::after{left:20%;width:60%;bottom:0;height:3px;background:#806a4830;filter:blur(2px)}
+.pet-room-prop.is-table::after{content:'';position:absolute;left:22%;width:56%;bottom:0;height:2px;background:#806a4826;filter:blur(1px);z-index:-1}
+.pet-shop-prop.pet-furniture-art{width:auto!important;height:108px!important;max-width:125px}
+@media(max-width:600px){.pet-shop-prop.pet-furniture-art{height:88px!important;max-width:100px}}
+.pet-object-preview{height:130px;width:100%;display:grid;place-items:center;flex-shrink:0}
+.pet-object-preview .pet-shop-prop.pet-furniture-art{width:var(--pet-prop-width)!important;height:auto!important;max-width:100px;margin:0}
+@media(min-width:601px){.pet-object-preview .pet-shop-prop.pet-furniture-art{max-width:125px}}

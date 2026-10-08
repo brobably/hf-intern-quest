@@ -27,3 +27,34 @@ Prompt set: edit the existing 5-column/8-row atlas into a visibly newborn cream 
 Character edge compositing now rejects cyan contamination outside silhouettes and slightly contracts alpha; it is independent of roof color recoloring. This avoids erasing green hats and supports all four stages and five palettes. A keyboard-visible focus outline is retained. Sofa is 53% room width behind the character; other furniture uses back-wall, tabletop and front-floor depth. Baby room sprite width30%; toddler36%; intern39%; adult42%. Stage2 label is now 꼬마 보금이. Growth thresholds and saved ownership are unchanged.
 
 Validation: 320 idle/smile silhouettes inside fitted bounds; four stages/five palettes including beret+bag; all15 furniture and280/530/850px layouts, smiles, console logs; JavaScript syntax. Test views do not alter production pet state.
+
+## Unified room/furniture revision (v4)
+
+Built-in imagegen mode; generated source pixels retained unchanged. Final asset paths:
+- dist/bogeumi-furniture-v4.png
+- dist/bogeumi-room-v4.png
+- dist/bogeumi-rugs-v4.png
+
+Prompt set: regenerate15 objects in5x3 order plant/books/lamp/sofa/clock, flowers/cat/stars/desk/pillow, piggy/watering/tea/painting/basket. Smooth rounded molded clay toy material matching Bogeumi, front orthographic camera with a slight elevated view, diffuse upper-left light, cream/oak/sage/dusty blue/blush palette, no real fabric/wood grain, transparent gutters and complete separated silhouettes. Generate an empty5:4 ivory toy room with arch window left, wall60%/floor40%, broad plain blond planks and no furniture. Generate3 transparent shallow oval smooth blue/pink/mint rugs without braided fibers. Discarded first edit attempt retained only at generation source, not used in app.
+
+Audit and corrections:
+- plant: round vinyl-like leaves, side-floor anchor ahead of lamp.
+- bookshelf: smooth toy books, back-right wall/floor anchor.
+- lamp: rectangular alpha viewport preserves tall silhouette,19%room width, about33%room height; previously square viewport made actual shade/stem miniature.
+- sofa: smooth blue material,56%width, behind pet, no realistic fabric weave.
+- clock: clean round toy bear, wall above sofa.
+- flowers: rounded simplified tulips; on tabletop when desk equipped, left-floor vase otherwise.
+- cat: smooth cream plush, left foreground.
+- stars: molded toy star mobile, high wall, outside clock.
+- desk: low rounded table in right foreground; vase/cup bases share its surface.
+- pillow: smooth blush toy cushion, right floor.
+- piggy: small round blush toy, left-front floor.
+- watering can: smooth sage flower can, closer left floor and away from room label/central rug.
+- tea: ivory/blue clay cup, on table when present, floor tray otherwise.
+- painting: same beige molded frame/picture style, right wall.
+- basket: smooth simplified weave/blanket, larger right-side floor anchor with bottom breathing room.
+- rugs: smooth low-relief ovals, consistent scale/light/material.
+
+Rendering reads connected alpha bounds without pixel editing. Every furniture span has its own rectangular aspect ratio; atlas background axes are fitted independently, so narrow/tall objects remain proportional. CSS adds small shared contact shadows; wall, floor and table items receive appropriate depth/contact treatment. The same art and rectangular bounds are reused in shop/inventory. Character, purchases, rewards and equipment data unchanged.
+
+Validation: all15 item previews visually checked (including corrected wide sofa/table ratio), full15-item arrangement and280/530/850px room sizes,320 character silhouette bounds preserved. Garland moved fully inside room after boundary check. Lamp scale/floor contact and front-floor spacing verified. No production care/purchase/equipment actions made.
