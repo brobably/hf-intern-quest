@@ -1,5 +1,14 @@
 # Bogeumi complete equipment paintings
 
+## Expression repair — 2026-10-08
+
+Built-in imagegen edit mode created four complete smiling atlases, 40 costumes per stage. Assets: dist/bogeumi-smile-0.webp through dist/bogeumi-smile-3.webp; matching PNG originals retained locally. Each target was the same-stage bogeumi-integrated PNG. The same palette filter applies to idle and smiling paintings. Petting and the brief random blink select the complete closed-eye painting; no SVG eye masks, cream covering discs or independently positioned eyes remain. Alpha analysis only computes clipping outlines; artwork pixels are not edited. WebP encoding preserves dimensions and transparency (quality 92).
+
+Identical edit prompt for all four stage targets:
+
+Edit target: attached Bogeumi costume sprite atlas. Precise expression edit ONLY. Preserve exact 5 columns by 8 rows, all 40 characters, their cell positions, sizes, poses, costumes, accessory combinations, blue material colors, cream shaded clay skin, mouth, glasses rims and transparent background. Change EVERY character's two dark open eyes into naturally sculpted joyful closed upward crescent smiling eyes (inverted U shape), embedded in the cream face with matching soft ambient shading. No open pupils left, no detached floating eyes, no cream discs/patches, no extra overlay graphics. For glasses rows the smiling eyelids are naturally visible behind the unchanged glasses lenses. Keep complete characters and every existing accessory identical; no new objects, no labels. Pixel-aligned expression variant used in game animation; do not rearrange cells. True transparent background.
+
+
 Generated with the built-in imagegen tool on 2026-10-07. Four transparent atlases contain 40 complete painted combinations each, for 160 paintings total. Runtime selects exactly one complete frame. No equipment overlays or cloned body fragments are used.
 
 Equipment regions: head (ribbon/headset/beret/star pin), face (glasses), body and hands (scarf/satchel/held charm). Each region accepts one item. This limits the wearable set to three compatible items and guarantees every supported selection has complete art. Purchased ownership is retained when replacing or migrating equipment. Five palettes recolor blue material in the selected complete frame consistently, including roof, window, glasses, strap, lanyard and cardigan; cream skin, gold, coral, mint hat and lavender headset are preserved.

@@ -292,3 +292,6 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 .pet-integrated-avatar{isolation:isolate}.pet-integrated-avatar>.pet-integrated-frame{z-index:1}.pet-integrated-avatar>.pet-face{z-index:2}
 .pet-integrated-avatar.color-mint>.pet-integrated-frame{filter:url(#pet-color-mint)}.pet-integrated-avatar.color-pink>.pet-integrated-frame{filter:url(#pet-color-pink)}.pet-integrated-avatar.color-lavender>.pet-integrated-frame{filter:url(#pet-color-lavender)}.pet-integrated-avatar.color-sunset>.pet-integrated-frame{filter:url(#pet-color-sunset)}
 .pet-integrated-avatar{animation:pet-outfit-arrive .35s ease-out}@keyframes pet-outfit-arrive{from{opacity:.3;transform:scale(.93)}to{opacity:1;transform:scale(1)}}
+
+/* Expression changes use a complete painted character, never separate eye masks. */
+.pet-character.is-stroked .pet-integrated-frame,.pet-integrated-avatar.is-blinking>.pet-integrated-frame{background-image:var(--pet-smile-sheet);clip-path:var(--pet-smile-clip)}
