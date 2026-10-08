@@ -308,3 +308,24 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 .pet-character.is-stroked .pet-integrated-frame,.pet-integrated-avatar.is-blinking>.pet-integrated-frame{background-size:var(--pet-smile-size);background-position:var(--pet-smile-position);clip-path:var(--pet-smile-clip)}
 @media(max-width:550px){.pet-room{height:340px}.pet-room .pet-character{width:46%;bottom:17%}.pet-room .pet-window{border-width:5px}.pet-room .pet-wall-frame{font-size:10px;padding:8px 4px;border-width:3px}}
 @media(prefers-reduced-motion:reduce){.pet-room .pet-character{animation:none}}
+
+/* Cohesive clay room art: shared lighting, scale and floor contact. */
+.pet-room-backdrop{position:absolute;inset:0;z-index:0;background:url('bogeumi-room-v2.png') center/100% 100% no-repeat;filter:saturate(.72)}
+.pet-room .pet-room-wall{inset:0 0 40%;border:0;background:transparent;pointer-events:none}
+.pet-room .pet-floor{inset:60% 0 0;background:transparent;pointer-events:none}
+.pet-room.wall-mint .pet-room-wall{background:#acd0bf;opacity:.2;mix-blend-mode:multiply}
+.pet-room.wall-peach .pet-room-wall{background:#f0baaa;opacity:.2;mix-blend-mode:multiply}
+.pet-room.wall-night .pet-room-wall{background:#7482a6;opacity:.7;mix-blend-mode:multiply}
+.pet-room.floor-white .pet-floor{background:#f3f2edaa;mix-blend-mode:screen}
+.pet-room .pet-rug{left:29%;width:46%;bottom:8%;height:17%;border:3px solid #e5e8e4;background:radial-gradient(ellipse,#e4edf0 40%,#d9e4e7 80%);box-shadow:inset 0 1px 5px #ffffffaa,0 3px 5px #735b3920;z-index:1}
+.pet-room.rug-pink .pet-rug{background:radial-gradient(ellipse,#f1e1e4,#dfc9d0);border-color:#e8d4d9}
+.pet-room.rug-mint .pet-rug{background:radial-gradient(ellipse,#e0ebe1,#c9dccd);border-color:#d2e2d6}
+.pet-furniture-art{background-image:url('bogeumi-furniture-v2.png')!important}
+.pet-room-prop.is-floor::after{bottom:1%;width:65%;left:17.5%;height:5%;background:#775d3430;filter:blur(2px)}
+.pet-room-prop .pet-furniture-art{filter:drop-shadow(1px 3px 2px #735e3929)}
+.pet-room-prop.is-wall .pet-furniture-art{filter:drop-shadow(1px 2px 1px #80684426)}
+.pet-room .pet-character{bottom:12%}
+.pet-room-label{background:#fff9edb8;padding:3px 7px;border-radius:8px;color:#877559;bottom:7px;left:8px}
+@media(max-width:550px){.pet-room{height:auto;min-height:280px;aspect-ratio:1.26}.pet-room .pet-character{bottom:14%}}
+
+.pet-room .pet-rug,.pet-room.rug-pink .pet-rug,.pet-room.rug-mint .pet-rug{height:auto;background-image:url(bogeumi-rugs-v2.png);background-color:transparent;border:0;border-radius:0;box-shadow:none;background-repeat:no-repeat;bottom:7%;width:49%;left:27%}
