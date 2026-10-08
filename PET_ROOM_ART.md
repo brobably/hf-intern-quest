@@ -66,3 +66,9 @@ Generated files: `dist/bogeumi-theme-{sky,mint,rose,lavender}-furniture.png`, `d
 
 Prompt set: edit the existing room/furniture reference, preserve the exact camera, composition, object silhouettes and soft clay mascot style, recolor every item into the theme accent plus warm ivory and pale neutral wood, remove competing rainbow accents, use muted sage only for plants, preserve transparent background for furniture. Room variants retain the arched window and wall/floor proportions. Rug sheet has three isolated oval rugs, mint/rose/lavender, matching the furniture fabric, transparent background.
 
+
+## Furniture scale and placement (2026-10-08)
+
+Placement mode: pointer drag/touch, accessible furniture selector and arrow keys, save/cancel/default reset. Account-scoped server storage retains positions through unequip and re-equip. Wall ornaments stay on the wall; floor props remain within the floor band. Object aspect ratios remain unchanged.
+
+Scale hierarchy: sofa 56% room width; standing lamp 23%; bookshelf 20%; low table 30%; small watering can 7.5%; piggy bank 5.5%; teacup 5%. Shop/inventory previews use corresponding relative sizes rather than giving every object the same height. Real furniture proportions informed the stylized scale: [IKEA two-seat sofa guide, widths 164–180 cm](https://www.ikea.com/kr/ko/files/pdf/28/e3/28e34c3c/landskrona_buying_guide_a4.pdf). Gameplay room uses readable, approximate proportions rather than architectural measurements.

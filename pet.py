@@ -1,5 +1,5 @@
 """Account-scoped Bogeumi care game. Growth and purchases are server-authoritative."""
-import json,time
+import json,time,math
 from datetime import datetime,timezone,timedelta
 ZONE=timezone(timedelta(hours=9))
 STAGES=[('새싹집',0),('꼬마 보금이',64),('인턴 보금이',192),('든든한 보금이',384)]
@@ -118,7 +118,7 @@ def get(h,u,db):
   progress=coin_progress(c,u['id'],p,time.time()) if row else []
  h.reply(200,{'pet':{**public(p,time.time(),u['role']=='admin'),'coin_history':rewards,'coin_progress':progress} if row else None});return True
 def post(h,u,d,db):
- if h.path not in ['/api/pet/adopt','/api/pet/care','/api/pet/decorate','/api/pet/rename','/api/pet/stroke']:return False
+ if h.path not in ['/api/pet/adopt','/api/pet/care','/api/pet/decorate','/api/pet/rename','/api/pet/stroke','/api/pet/layout']:return False
  now=time.time();message=''
  with db() as c:
   c.execute('BEGIN IMMEDIATE');row=c.execute('SELECT data FROM intern_pets WHERE user_id=?',(u['id'],)).fetchone()
@@ -152,6 +152,20 @@ def post(h,u,d,db):
    elif h.path=='/api/pet/stroke':
     if now-p.get('last_stroke',0)<10:h.reply(429,{'error':'보금이가 아직 좋아하고 있어요. 잠깐 뒤 다시 쓰다듬어 주세요.'});return True
     p['happy']=min(100,p['happy']+3);p['last_stroke']=now;message='쓰담쓰담, 고마워요! 행복 +3 ♥'
+   elif h.path=='/api/pet/layout':
+    layout=d.get('layout')
+    if not isinstance(layout,dict) or len(layout)>15:h.reply(400,{'error':'가구 배치를 확인해 주세요.'});return True
+    cleaned={}
+    for key,pos in layout.items():
+     if key not in ITEMS or ITEMS[key]['category']!='furniture' or key not in p['owned'] or key not in p['equipped'] or not isinstance(pos,dict) or set(pos)!={'x','bottom'}:
+      h.reply(400,{'error':'방에 장착한 가구만 배치할 수 있어요.'});return True
+     x,bottom=pos['x'],pos['bottom']
+     if any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) for v in [x,bottom]) or not 0<=x<=100 or not 0<=bottom<=90:
+      h.reply(400,{'error':'가구 위치는 방 안으로 지정해 주세요.'});return True
+     cleaned[key]={'x':round(x,2),'bottom':round(bottom,2)}
+    # Unmounted furniture remembers its last position for the next equip.
+    p['layout']={**p.get('layout',{}),**cleaned} if not d.get('reset') else cleaned
+    message='가구 배치를 저장했어요.'
    elif h.path=='/api/pet/rename':
     name=d.get('name')
     if not isinstance(name,str) or not 1<=len(name.strip())<=12:h.reply(400,{'error':'이름은 1~12자로 입력해 주세요.'});return True
