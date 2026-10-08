@@ -48,6 +48,9 @@ for key,item in ITEMS.items():
 
 ITEMS['color-blue']={'name':'기본 파랑 보금이','price':0,'category':'color','icon':'','slot':'color'}
 ITEMS['look-star']['name']='별빛 지붕 핀'
+ROOM_THEMES={'theme-sky':'스카이 크림','theme-mint':'민트 가든','theme-rose':'로즈 밀크','theme-lavender':'라벤더 드림'}
+for key,name in ROOM_THEMES.items():
+ ITEMS[key]={'name':name,'price':0,'category':'room','icon':'','slot':'room-theme','description':'배경·가구·러그 색을 함께 맞추는 무료 테마'}
 SLOT_NAMES={'head':'머리','eyewear':'얼굴','body':'몸통·손','color':'색상'}
 for key in ['look-ribbon','look-music','look-beret','look-star']:ITEMS[key]['slot']='head'
 for key in ['look-cozy','look-bag','look-charm']:ITEMS[key]['slot']='body'
@@ -58,7 +61,7 @@ for key,item in ITEMS.items():
 
 def normalize_equipment(p):
  # Keep the most recently equipped item in each slot; ownership never changes.
- p['owned']=list(dict.fromkeys(['color-blue']+p.get('owned',[])))
+ p['owned']=list(dict.fromkeys(['color-blue',*ROOM_THEMES]+p.get('owned',[])))
  selected=[];slots=set()
  for key in reversed(p.get('equipped',[])):
   if key not in ITEMS or key in selected:continue
@@ -170,7 +173,7 @@ def post(h,u,d,db):
      message='장착을 해제했어요. 아이템은 소장함에 남아 있어요.'
     else:
      if item not in p['equipped']:p['equipped'].append(item)
-     message=(SLOT_NAMES.get(ITEMS[item].get('slot'),'아이템')+'에 '+ITEMS[item]['name']+' 착용 완료! 같은 부위의 기존 소품은 소장함에 보관돼요.')
+     message=(ITEMS[item]['name']+' 테마를 적용했어요. 배경·가구·러그 색을 함께 맞췄어요.') if item in ROOM_THEMES else (SLOT_NAMES.get(ITEMS[item].get('slot'),'아이템')+'에 '+ITEMS[item]['name']+' 착용 완료! 같은 부위의 기존 소품은 소장함에 보관돼요.')
     slot=ITEMS[item].get('slot')
     if slot and item in p['equipped']:
      p['equipped']=[key for key in p['equipped'] if key==item or ITEMS.get(key,{}).get('slot')!=slot]

@@ -58,3 +58,11 @@ Audit and corrections:
 Rendering reads connected alpha bounds without pixel editing. Every furniture span has its own rectangular aspect ratio; atlas background axes are fitted independently, so narrow/tall objects remain proportional. CSS adds small shared contact shadows; wall, floor and table items receive appropriate depth/contact treatment. The same art and rectangular bounds are reused in shop/inventory. Character, purchases, rewards and equipment data unchanged.
 
 Validation: all15 item previews visually checked (including corrected wide sofa/table ratio), full15-item arrangement and280/530/850px room sizes,320 character silhouette bounds preserved. Garland moved fully inside room after boundary check. Lamp scale/floor contact and front-floor spacing verified. No production care/purchase/equipment actions made.
+# Coordinated room palettes (2026-10-08)
+
+Four free saved themes: Sky Cream (#9ebbd1), Mint Garden (#91b9aa), Rose Milk (#c995a5), Lavender Dream (#a59ac4). Character color remains independently selectable. Existing furniture ownership and placement are preserved; the theme coordinates its artwork automatically.
+
+Generated files: `dist/bogeumi-theme-{sky,mint,rose,lavender}-furniture.png`, `dist/bogeumi-theme-{mint,rose,lavender}-room.png`, `dist/bogeumi-theme-rugs.png`. Sky uses the existing warm cream room and blue rug. Every furniture sheet contains the same 15 objects in five columns and three rows. Alpha bounds and sprite aspect ratios are measured per generated variant; no recoloring filter is applied.
+
+Prompt set: edit the existing room/furniture reference, preserve the exact camera, composition, object silhouettes and soft clay mascot style, recolor every item into the theme accent plus warm ivory and pale neutral wood, remove competing rainbow accents, use muted sage only for plants, preserve transparent background for furniture. Room variants retain the arched window and wall/floor proportions. Rug sheet has three isolated oval rugs, mint/rose/lavender, matching the furniture fabric, transparent background.
+
