@@ -297,7 +297,7 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 .pet-character.is-stroked .pet-integrated-frame,.pet-integrated-avatar.is-blinking>.pet-integrated-frame{background-image:var(--pet-smile-sheet);clip-path:var(--pet-smile-clip)}
 
 /* Room surfaces and complete sprite bounds share one consistent coordinate system. */
-.pet-room{height:420px;container-type:inline-size}.pet-room-wall{bottom:43%}.pet-floor{top:57%}.pet-room .pet-rug{left:26%;width:48%;bottom:9%;height:17%}
+.pet-room{height:auto;min-height:340px;aspect-ratio:1.26;container-type:inline-size}.pet-room-wall{bottom:43%}.pet-floor{top:57%}.pet-room .pet-rug{left:26%;width:48%;bottom:9%;height:17%}
 .pet-room-prop{top:auto;transform:translateX(-50%);max-width:none}.pet-room-prop .pet-prop{width:100%}
 .pet-room-prop.is-floor::after{content:'';position:absolute;left:16%;right:16%;bottom:1%;height:5%;border-radius:50%;background:#66534230;filter:blur(3px);z-index:-1}
 .pet-room-prop.is-wall .pet-prop{filter:drop-shadow(0 2px 2px #46576730)}.pet-room-prop.is-floor .pet-prop{filter:drop-shadow(0 2px 1px #66534222)}
