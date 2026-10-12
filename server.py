@@ -8,6 +8,7 @@ from datetime import datetime,timezone,timedelta
 from storage import connect,IntegrityError
 import activity
 import meals
+import meal_clubs
 import wiki
 import news
 import privacy
@@ -40,6 +41,7 @@ with db() as c:
    c.execute('UPDATE users SET state=? WHERE id=?',(json.dumps(saved,ensure_ascii=False),account['id']))
  activity.initialize(c)
  meals.initialize(c)
+ meal_clubs.initialize(c)
  wiki.initialize(c)
  news.initialize(c)
  extras.initialize(c)
@@ -107,6 +109,7 @@ class Handler(SimpleHTTPRequestHandler):
   if study.get(self,u,db):return
   if activity.get(self,u,db):return
   if meals.get(self,u,db):return
+  if meal_clubs.get(self,u,db):return
   if wiki.get(self,u,db):return
   if news.get(self,u,db):return
   if self.path.startswith('/api/boards/'):
@@ -197,6 +200,7 @@ class Handler(SimpleHTTPRequestHandler):
     c.execute('INSERT OR IGNORE INTO user_profiles(user_id) VALUES(?)',(uid,));c.execute('UPDATE user_profiles SET department=? WHERE user_id=?',(department.strip(),uid))
    return self.reply(200,{'ok':True})
   if meals.post(self,u,d,db):return
+  if meal_clubs.post(self,u,d,db):return
   if wiki.post(self,u,d,db):return
   if path=='/api/boards/post':
    kind=d.get('kind');title=d.get('title');body=d.get('body');link=d.get('link','');day=d.get('event_day','')
@@ -281,4 +285,3 @@ class Handler(SimpleHTTPRequestHandler):
 if __name__=='__main__':
  print(f'HF 로그인 서버: http://127.0.0.1:{PORT}/',flush=True)
  ThreadingHTTPServer((BIND,PORT),Handler).serve_forever()
-

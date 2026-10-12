@@ -1,6 +1,7 @@
 import json,os
 import activity
 import privacy
+import meal_clubs
 from urllib.parse import urlsplit,parse_qs,urlencode
 from urllib.request import Request,urlopen
 from urllib.error import URLError
@@ -74,6 +75,7 @@ def get(h,u,db):
    rows=c.execute("SELECT meals.*,users.name AS author FROM meals JOIN users ON users.id=meals.user_id WHERE event_time LIKE ? ORDER BY event_time",(day+'%',)).fetchall()
    result=[meal_data(c,r) for r in rows if u['id'] in json.loads(r['members']) and len(json.loads(r['members']))>=2 and meal_option(c,r['id'])['kind']=='single']
    for m in result:m['participants']=[r[0] for r in c.execute('SELECT name FROM users WHERE id IN ('+','.join('?' for _ in m['members'])+')',tuple(m['members']))]
+   result.extend(meal_clubs.today_meals(c,u['id']))
   h.reply(200,{'day':day,'meals':result});return True
  if h.path!='/api/meals':return False
  with db() as c:
