@@ -7,7 +7,6 @@ from contextlib import contextmanager
 from datetime import datetime,timezone,timedelta
 from storage import connect,IntegrityError
 import activity
-import pet
 import meals
 import wiki
 import news
@@ -29,12 +28,19 @@ with db() as c:
  c.execute('CREATE TABLE IF NOT EXISTS attendance(user_id INTEGER NOT NULL,day TEXT NOT NULL,PRIMARY KEY(user_id,day))')
  c.execute("CREATE TABLE IF NOT EXISTS posts(id INTEGER PRIMARY KEY,kind TEXT NOT NULL,user_id INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,link TEXT NOT NULL DEFAULT '',event_day TEXT NOT NULL DEFAULT '',created TEXT NOT NULL,members TEXT NOT NULL DEFAULT '[]',replies TEXT NOT NULL DEFAULT '[]')")
  c.execute("CREATE TABLE IF NOT EXISTS user_profiles(user_id INTEGER PRIMARY KEY,department TEXT NOT NULL DEFAULT '',rejection_reason TEXT NOT NULL DEFAULT '')")
- pet.initialize(c)
+ # Retire the removed care game and its account-specific currency data.
+ for table in ('pet_coin_rewards','pet_coin_wallet','intern_pets'):c.execute('DROP TABLE IF EXISTS '+table)
+ for account in c.execute('SELECT id,state FROM users').fetchall():
+  saved=json.loads(account['state'])
+  if isinstance(saved.get('favorites'),list) and 'pet' in saved['favorites']:
+   saved['favorites']=[key for key in saved['favorites'] if key!='pet']
+   c.execute('UPDATE users SET state=? WHERE id=?',(json.dumps(saved,ensure_ascii=False),account['id']))
  activity.initialize(c)
  meals.initialize(c)
  wiki.initialize(c)
  news.initialize(c)
  extras.initialize(c)
+ c.execute("DELETE FROM page_views WHERE route='pet'")
  study.initialize(c)
  c.execute("UPDATE user_profiles SET department='' WHERE user_id IN (SELECT id FROM users WHERE employee='1234' AND name='이강인' AND role='admin')")
  c.execute("UPDATE wiki_documents SET department='공통' WHERE department='kfa' AND user_id IN (SELECT id FROM users WHERE employee='1234' AND name='이강인')")
@@ -66,7 +72,7 @@ class Handler(SimpleHTTPRequestHandler):
   if not self.path.startswith('/api/'):self.send_header('Cache-Control','no-cache')
   self.send_header('X-Content-Type-Options','nosniff');self.send_header('Referrer-Policy','same-origin');self.send_header('X-Frame-Options','DENY');super().end_headers()
  def reply(self,status,obj,cookie=None):
-  if self.path.startswith('/api/') and self.path not in ['/api/me','/api/state','/api/attendance','/api/pet'] and not self.path.startswith('/api/pet/'):
+  if self.path.startswith('/api/') and self.path not in ['/api/me','/api/state','/api/attendance']:
    viewer=self.user()
    if viewer:
     with db() as c:obj=privacy.filter_response(c,viewer,obj,self.path)
@@ -91,7 +97,6 @@ class Handler(SimpleHTTPRequestHandler):
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
   if extras.get(self,u,db):return
   if study.get(self,u,db):return
-  if pet.get(self,u,db):return
   if activity.get(self,u,db):return
   if meals.get(self,u,db):return
   if wiki.get(self,u,db):return
@@ -169,7 +174,6 @@ class Handler(SimpleHTTPRequestHandler):
   if private_block:return self.reply(404,{'error':'요청한 항목을 찾을 수 없습니다.'})
   if extras.post(self,u,d,db):return
   if study.post(self,u,d,db):return
-  if pet.post(self,u,d,db):return
   if activity.post(self,u,d,db):return
   if news.post(self,u,d,db):return
   if path=='/api/admin/department':
@@ -232,7 +236,7 @@ class Handler(SimpleHTTPRequestHandler):
    s=d.get('state');allowed={'tasks','clean','lunch','wiki','best','favorites'}
    if not isinstance(s,dict) or set(s)-allowed:return self.reply(400,{'error':'저장 내용을 확인해 주세요.'})
    if any(not isinstance(s.get(k,[]),list) for k in ['tasks','clean','lunch','wiki']):return self.reply(400,{'error':'저장 형식이 올바르지 않습니다.'})
-   if 'favorites' in s and (not isinstance(s['favorites'],list) or len(s['favorites'])>20 or any(x not in ['','games','pet','stroop','anonymous','analytics','manual-ai','glossary','registry-guide','checklist','cleaning','lunch','reflex','wiki','study','articles','jobs','qna','suggestions'] for x in s['favorites'])):return self.reply(400,{'error':'즐겨찾기 목록을 확인해 주세요.'})
+   if 'favorites' in s and (not isinstance(s['favorites'],list) or len(s['favorites'])>20 or any(x not in ['','games','stroop','anonymous','analytics','manual-ai','glossary','registry-guide','checklist','cleaning','lunch','reflex','wiki','study','articles','jobs','qna','suggestions'] for x in s['favorites'])):return self.reply(400,{'error':'즐겨찾기 목록을 확인해 주세요.'})
    with db() as c:
     c.execute('BEGIN IMMEDIATE')
     previous=json.loads(c.execute('SELECT state FROM users WHERE id=?',(u['id'],)).fetchone()[0])

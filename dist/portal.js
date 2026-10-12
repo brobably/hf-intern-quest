@@ -1,14 +1,16 @@
 const main=document.querySelector('main'),header=main.querySelector('header');
 const signedName=window.hfAuth.user.name;
 const dashboard=[...main.children].filter(x=>x!==header).map(x=>x.outerHTML).join('').replaceAll('김하늘 인턴님',signedName.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))+' 인턴님');
-const titles={'':'대시보드','manual-ai':'업무 매뉴얼 AI',glossary:'HF 금융상품 용어사전','registry-guide':'등기부등본 확인 방법',checklist:'업무 체크리스트',cleaning:'금주 청소 담당자',lunch:'같이 밥 먹을래?','pet':'보금이 키우기','games':'놀이터',stroop:'색깔 맞추기',analytics:'이용 통계',anonymous:'익명 게시판',reflex:'순발력 대결',wiki:'인턴 위키',study:'같이 공부할래?',articles:'오늘의 기사',jobs:'오늘의 채용 소식',qna:'Q&A',suggestions:'건의사항'};
+const titles={'':'대시보드','manual-ai':'업무 매뉴얼 AI',glossary:'HF 금융상품 용어사전','registry-guide':'등기부등본 확인 방법',checklist:'업무 체크리스트',cleaning:'금주 청소 담당자',lunch:'같이 밥 먹을래?','games':'놀이터',stroop:'색깔 맞추기',analytics:'이용 통계',anonymous:'익명 게시판',reflex:'순발력 대결',wiki:'인턴 위키',study:'같이 공부할래?',articles:'오늘의 기사',jobs:'오늘의 채용 소식',qna:'Q&A',suggestions:'건의사항'};
 const boardKinds=['study','articles','jobs','qna','suggestions'];
 const nav=document.querySelector('aside nav');
 const navModel=nav.querySelector('a');
-for(const kind of [...boardKinds,'pet','stroop','anonymous',...(hfAuth.user.role==='admin'?['analytics']:[])]){const a=document.createElement('a');a.href='#'+kind;a.className=navModel.className.replace('bg-primary-500','').replace('text-background-50','');a.innerHTML='<span class="board-icon" aria-hidden="true">'+({pet:'⌂',games:'▦',stroop:'◉',anonymous:'◇',analytics:'▥',study:'◎',articles:'▤',jobs:'▣',qna:'?',suggestions:'◇'}[kind])+'</span><span>'+titles[kind]+'</span>';nav.append(a);}
+for(const kind of [...boardKinds,'stroop','anonymous',...(hfAuth.user.role==='admin'?['analytics']:[])]){const a=document.createElement('a');a.href='#'+kind;a.className=navModel.className.replace('bg-primary-500','').replace('text-background-50','');a.innerHTML='<span class="board-icon" aria-hidden="true">'+({games:'▦',stroop:'◉',anonymous:'◇',analytics:'▥',study:'◎',articles:'▤',jobs:'▣',qna:'?',suggestions:'◇'}[kind])+'</span><span>'+titles[kind]+'</span>';nav.append(a);}
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const defaults={tasks:[['오전 9시 MBS 발행 현황 메일 확인',false,5],['유동화증권 발행공시 자료 취합 (DART)',false,5],['담보주택 등기부등본 3건 확인',false,30],['용어사전에서 신탁원본 학습하기',false,10],['주간 회의록 초안 작성',false,20]],clean:[false,true,false],lunch:[],wiki:[],best:null,favorites:[]};
 let state={...structuredClone(defaults),...window.hfAuth.state};
+state.favorites=(state.favorites||[]).filter(key=>Object.hasOwn(titles,key));
+if(location.hash==='#pet')location.replace('#games');
 let saving=Promise.resolve();
 function save(){const snapshot=JSON.stringify({state});saving=saving.catch(()=>{}).then(async()=>{const response=await fetch('/api/state',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:snapshot});if(!response.ok)throw Error('저장 실패');loadActivity();}).catch(()=>{document.querySelector('.portal-error-status').textContent='계정 데이터 저장에 실패했습니다. 로그인과 서버 연결 상태를 확인해 주세요.'});}
 const select=document.createElement('select');select.className='mobile-nav';select.setAttribute('aria-label','메뉴 이동');select.innerHTML=Object.entries(titles).filter(([k])=>k!=='analytics'||hfAuth.user.role==='admin').map(([k,v])=>`<option value="${k}">${v}</option>`).join('');header.before(select);select.onchange=()=>location.hash=select.value;
@@ -130,7 +132,7 @@ const logoIcon=document.querySelector('aside > a svg');if(logoIcon){const box=lo
 
 function organizeSidebar(){
  const menu=document.querySelector('aside nav');
- const groups=[['업무용',['manual-ai','glossary','registry-guide','checklist','wiki']],['그 외',['cleaning','lunch','study','articles','jobs']],['놀이터',['reflex','stroop','pet']],['기타',['anonymous','qna','suggestions']],...(hfAuth.user.role==='admin'?[['관리자',['analytics']]]:[])];
+ const groups=[['업무용',['manual-ai','glossary','registry-guide','checklist','wiki']],['그 외',['cleaning','lunch','study','articles','jobs']],['놀이터',['reflex','stroop']],['기타',['anonymous','qna','suggestions']],...(hfAuth.user.role==='admin'?[['관리자',['analytics']]]:[])];
  for(const [name,keys] of groups){
   const group=document.createElement('details');group.className='sidebar-group';group.open=true;
   const heading=document.createElement('summary');if(name==='놀이터'){heading.innerHTML='<a href="#games">놀이터</a>';heading.querySelector('a').onclick=e=>e.stopPropagation();}else heading.textContent=name;group.append(heading);

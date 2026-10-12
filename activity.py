@@ -1,5 +1,4 @@
 import json,secrets,time
-import pet
 import privacy
 from datetime import datetime,timezone,timedelta
 ZONE=timezone(timedelta(hours=9))
@@ -30,8 +29,6 @@ def materialize_rotations(c,target_week):
 
 def award(c,uid,key,amount):
  c.execute('INSERT OR IGNORE INTO points(user_id,event_key,day,amount) VALUES(?,?,?,?)',(uid,key,today(),amount))
- if key.startswith('attendance:'):pet.reward(c,uid,key,10)
- elif amount>0:pet.reward(c,uid,'activity:'+key,max(1,amount//2),('activity',20))
 def get(h,u,db):
  if h.path=='/api/reflex/comments':
   with db() as c:
@@ -136,8 +133,7 @@ def post(h,u,d,db):
    old=c.execute('SELECT ms FROM reflex_scores WHERE user_id=? AND week=?',(u['id'],week())).fetchone()
    if not old:c.execute('INSERT INTO reflex_scores(user_id,week,ms) VALUES(?,?,?)',(u['id'],week(),ms))
    elif ms<old['ms']:c.execute('UPDATE reflex_scores SET ms=? WHERE user_id=? AND week=?',(ms,u['id'],week()))
-   coin_reward=pet.reward(c,u['id'],'game:'+today(),10)
-  h.reply(200,{'ok':True,'coin_reward':coin_reward});return True
+  h.reply(200,{'ok':True});return True
  if path in ['/api/cleaning/rotation','/api/cleaning/rotation/stop']:
   if u['role']!='admin':h.reply(403,{'error':'관리자만 로테이션을 설정할 수 있습니다.'});return True
   department=d.get('department')

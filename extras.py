@@ -1,9 +1,9 @@
 """Member-only playground, anonymous discussions and aggregate usage metrics."""
 import json,secrets,time
 from datetime import datetime,timedelta
-import activity,privacy,pet
+import activity,privacy
 
-ROUTES=['','manual-ai','glossary','registry-guide','checklist','wiki','cleaning','lunch','study','articles','jobs','games','reflex','pet','stroop','anonymous']
+ROUTES=['','manual-ai','glossary','registry-guide','checklist','wiki','cleaning','lunch','study','articles','jobs','games','reflex','stroop','anonymous']
 COLORS=[('빨강','#ce3e45'),('파랑','#246dd0'),('초록','#278459'),('보라','#8755bb')]
 def initialize(c):
  c.executescript("""CREATE TABLE IF NOT EXISTS page_views(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,route TEXT NOT NULL,visited INTEGER NOT NULL);CREATE TABLE IF NOT EXISTS color_runs(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL,answers TEXT NOT NULL,started INTEGER NOT NULL);CREATE TABLE IF NOT EXISTS color_scores(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,week TEXT NOT NULL,correct INTEGER NOT NULL,elapsed INTEGER NOT NULL);CREATE TABLE IF NOT EXISTS anonymous_posts(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,created TEXT NOT NULL);CREATE TABLE IF NOT EXISTS anonymous_replies(id INTEGER PRIMARY KEY,post_id INTEGER NOT NULL,user_id INTEGER NOT NULL,parent_id INTEGER NOT NULL DEFAULT 0,body TEXT NOT NULL,created TEXT NOT NULL);CREATE TABLE IF NOT EXISTS anonymous_hearts(post_id INTEGER NOT NULL,user_id INTEGER NOT NULL,PRIMARY KEY(post_id,user_id));CREATE TABLE IF NOT EXISTS anonymous_reports(post_id INTEGER NOT NULL,user_id INTEGER NOT NULL,PRIMARY KEY(post_id,user_id));""")
@@ -71,7 +71,6 @@ def post(h,u,d,db):
    correct=sum(a==b for a,b in zip(answers,json.loads(run['answers'])))
    c.execute('DELETE FROM color_runs WHERE token=?',(run['token'],))
    c.execute('INSERT INTO color_scores(user_id,week,correct,elapsed) VALUES(?,?,?,?)',(u['id'],activity.week(),correct,elapsed))
-   if u['employee']!=privacy.TEST_EMPLOYEE:pet.reward(c,u['id'],'game:'+activity.today(),10,('game',10))
   h.reply(200,{'correct':correct,'elapsed':elapsed});return True
  if path.startswith('/api/anonymous/'):
   action=path.rsplit('/',1)[-1];pid=d.get('id');body=d.get('body','');created=datetime.now(activity.ZONE).isoformat(timespec='minutes')
