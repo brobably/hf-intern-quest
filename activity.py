@@ -6,6 +6,9 @@ def today():return datetime.now(ZONE).date().isoformat()
 def week():
  d=datetime.now(ZONE).date();return (d-timedelta(days=d.weekday())).isoformat()
 def initialize(c):
+ c.execute('CREATE TABLE IF NOT EXISTS game_reward_policy(id INTEGER PRIMARY KEY,start_week TEXT NOT NULL)')
+ c.execute('CREATE TABLE IF NOT EXISTS game_reward_settlements(game TEXT NOT NULL,week TEXT NOT NULL,PRIMARY KEY(game,week))')
+ c.execute('INSERT OR IGNORE INTO game_reward_policy(id,start_week) VALUES(1,?)',(week(),))
  c.execute('CREATE TABLE IF NOT EXISTS reflex_comment_threads(comment_id INTEGER PRIMARY KEY,parent_id INTEGER NOT NULL)')
  c.execute('CREATE TABLE IF NOT EXISTS reflex_comment_likes(comment_id INTEGER NOT NULL,user_id INTEGER NOT NULL,PRIMARY KEY(comment_id,user_id))')
  c.execute('CREATE TABLE IF NOT EXISTS cleaning_rotation_weeks(department TEXT NOT NULL,week TEXT NOT NULL,PRIMARY KEY(department,week))')
@@ -29,6 +32,26 @@ def materialize_rotations(c,target_week):
 
 def award(c,uid,key,amount):
  c.execute('INSERT OR IGNORE INTO points(user_id,event_key,day,amount) VALUES(?,?,?,?)',(uid,key,today(),amount))
+
+def settle_game_rewards(c):
+ c.execute('BEGIN IMMEDIATE')
+ start=c.execute('SELECT start_week FROM game_reward_policy WHERE id=1').fetchone()[0]
+ current=week()
+ for game,table,ordering in [('reflex','reflex_scores','s.ms,u.id'),('stroop','color_scores','s.correct DESC,s.elapsed,s.id')]:
+  weeks=c.execute(f'SELECT DISTINCT week FROM {table} WHERE week>=? AND week<? ORDER BY week',(start,current)).fetchall()
+  for entry in weeks:
+   target=entry[0]
+   if c.execute('SELECT week FROM game_reward_settlements WHERE game=? AND week=?',(game,target)).fetchone():continue
+   rows=c.execute(f"SELECT s.user_id FROM {table} s JOIN users u ON u.id=s.user_id WHERE s.week=? AND u.status='approved' AND u.employee<>? ORDER BY {ordering}",(target,privacy.TEST_EMPLOYEE)).fetchall()
+   winners=[]
+   for row in rows:
+    if row[0] not in winners:winners.append(row[0])
+    if len(winners)==3:break
+   payout=(datetime.strptime(target,'%Y-%m-%d')+timedelta(days=7)).date().isoformat()
+   for rank,uid in enumerate(winners,1):
+    # One key per game/week/user makes retries and concurrent requests idempotent.
+    c.execute('INSERT OR IGNORE INTO points(user_id,event_key,day,amount) VALUES(?,?,?,?)',(uid,f'game-week:{game}:{target}',payout,(100,60,30)[rank-1]))
+   c.execute('INSERT INTO game_reward_settlements(game,week) VALUES(?,?)',(game,target))
 def get(h,u,db):
  if h.path=='/api/reflex/comments':
   with db() as c:
@@ -44,6 +67,7 @@ def get(h,u,db):
  if h.path!='/api/activity':return False
  month=today()[:7]
  with db() as c:
+  settle_game_rewards(c)
   materialize_rotations(c,week())
   rotations=[dict(r) for r in c.execute('SELECT * FROM cleaning_rotations')]
   xp=c.execute('SELECT COALESCE(SUM(amount),0) FROM points WHERE user_id=?',(u['id'],)).fetchone()[0]
@@ -176,3 +200,4 @@ def post(h,u,d,db):
    else:c.execute('UPDATE cleaning_jobs SET done=1 WHERE id=?',(pid,));award(c,job['user_id'],'clean:'+job['week']+':'+str(job['user_id'])+':'+job['area'],10)
   h.reply(200,{'ok':True});return True
  return False
+
