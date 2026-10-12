@@ -13,6 +13,7 @@ import news
 import privacy
 import extras
 import study
+import updates
 BASE=Path(__file__).resolve().parent
 DATA=Path(os.environ.get('HF_DATA',str(BASE/'data')));DATA.mkdir(exist_ok=True)
 DB=DATA/'accounts.sqlite3'
@@ -96,6 +97,9 @@ class Handler(SimpleHTTPRequestHandler):
    return self.reply(200,{'user':public(u) if u else None,'setup':setup})
   u=self.user()
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
+  if self.path=='/api/menu-updates':
+   with db() as c:signals=updates.snapshot(c,u)
+   return self.reply(200,{'signals':signals})
   if extras.get(self,u,db):return
   if study.get(self,u,db):return
   if activity.get(self,u,db):return
@@ -273,3 +277,4 @@ class Handler(SimpleHTTPRequestHandler):
 if __name__=='__main__':
  print(f'HF 로그인 서버: http://127.0.0.1:{PORT}/',flush=True)
  ThreadingHTTPServer((BIND,PORT),Handler).serve_forever()
+
