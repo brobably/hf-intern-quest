@@ -1,5 +1,9 @@
 # Persistent Bogeumi anatomy and animation requirements
 
+## Approved architecture change, 2026-10-12
+
+The user explicitly approved a 2D cutout rig instead of independently generated full motion frames. Use a fixed reviewed body and costume image, rigid accessory transforms, generated limb/face components and joint rotation. This supersedes the older frame-only requirement below. Never stretch/warp the entire body or switch differently shaded whole-body art during blinking or flight. Preserve exactly two side arms/hands and two hip feet. Palette and bag pixels must remain invariant during animation.
+
 - Exactly two arms/hands total: one attached on each side of the body. Never two hands on one side, an extra central hand, a duplicate limb, or a cream lump beneath the face.
 - Exactly two feet below the body. Baby-stage sprites retain the pacifier in every pose, including blink and smile.
 - A shoulder bag is worn at the side on its strap. It does not add a holding hand. Both hands remain visibly connected to their respective body sides; no hand floating at the center.
