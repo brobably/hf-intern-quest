@@ -107,7 +107,17 @@ def post(h,u,d,db):
   answer=generate(question,sources)
   with db() as c:c.execute('INSERT OR IGNORE INTO manual_ai_cache(cache_key,answer) VALUES(?,?)',(cache_key,answer))
   response.update(answer=answer,mode='ai')
- except HTTPError as e:response['notice']='AI 제공 서비스의 사용 한도에 도달해 원문 검색 결과를 표시합니다.' if e.code==429 else 'AI 제공 서비스에 연결하지 못해 원문 검색 결과를 표시합니다.'
+ except HTTPError as e:
+  try:
+   error=json.loads(e.read()).get('error',{});status=error.get('status','UNKNOWN')
+   reasons=[x.get('reason','') for x in error.get('details',[]) if isinstance(x,dict)]
+   message=error.get('message','').lower()
+   category='expired_key' if 'expired' in message else 'invalid_key' if 'api key not valid' in message else 'quota' if e.code==429 else 'model_not_found' if e.code==404 else 'provider_error'
+  except Exception:status='UNKNOWN';reasons=[];category='provider_error'
+  # Log only provider codes, never the key, question, prompt, or error message.
+  codes=re.sub(r'[^A-Za-z0-9_,.-]','',','.join(str(r) for r in reasons))[:160]
+  print('manual_ai_error http='+str(e.code)+' status='+re.sub(r'[^A-Z_]','',str(status))+' category='+category+' reasons='+codes,flush=True)
+  response['notice']='AI 제공 서비스의 사용 한도에 도달해 원문 검색 결과를 표시합니다.' if e.code==429 else 'AI 연결 키가 만료되어 서버 설정을 갱신해야 합니다.' if category=='expired_key' else 'AI 연결 키를 확인해야 합니다.' if category=='invalid_key' else 'AI 제공 서비스 연결 오류(HTTP '+str(e.code)+')로 원문 검색 결과를 표시합니다.'
  except Exception as e:response['notice']=str(e) if isinstance(e,ValueError) else 'AI 답변 생성이 지연되어 원문 검색 결과를 표시합니다.'
  finally:ai_lock.release()
  h.reply(200,response);return True
