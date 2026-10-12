@@ -27,6 +27,7 @@ with db() as c:
  c.executescript('''CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,employee TEXT UNIQUE NOT NULL,name TEXT NOT NULL,salt TEXT NOT NULL,hash TEXT NOT NULL,status TEXT NOT NULL,role TEXT NOT NULL DEFAULT 'intern',state TEXT NOT NULL DEFAULT '{}');CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL,expires INTEGER NOT NULL);''')
  c.execute('CREATE TABLE IF NOT EXISTS attendance(user_id INTEGER NOT NULL,day TEXT NOT NULL,PRIMARY KEY(user_id,day))')
  c.execute("CREATE TABLE IF NOT EXISTS posts(id INTEGER PRIMARY KEY,kind TEXT NOT NULL,user_id INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,link TEXT NOT NULL DEFAULT '',event_day TEXT NOT NULL DEFAULT '',created TEXT NOT NULL,members TEXT NOT NULL DEFAULT '[]',replies TEXT NOT NULL DEFAULT '[]')")
+ c.execute('CREATE TABLE IF NOT EXISTS private_posts(post_id INTEGER PRIMARY KEY)')
  c.execute("CREATE TABLE IF NOT EXISTS user_profiles(user_id INTEGER PRIMARY KEY,department TEXT NOT NULL DEFAULT '',rejection_reason TEXT NOT NULL DEFAULT '')")
  # Retire the removed care game and its account-specific currency data.
  for table in ('pet_coin_rewards','pet_coin_wallet','intern_pets'):c.execute('DROP TABLE IF EXISTS '+table)
@@ -104,7 +105,8 @@ class Handler(SimpleHTTPRequestHandler):
   if self.path.startswith('/api/boards/'):
    kind=self.path.split('/')[-1]
    if kind not in ['study','articles','jobs','qna','suggestions']:return self.reply(404,{'error':'게시판이 없습니다.'})
-   sql='SELECT posts.*,users.name AS author FROM posts JOIN users ON users.id=posts.user_id WHERE kind=?';params=[kind]
+   sql='SELECT posts.*,users.name AS author,CASE WHEN private_posts.post_id IS NULL THEN 0 ELSE 1 END AS is_private FROM posts JOIN users ON users.id=posts.user_id LEFT JOIN private_posts ON private_posts.post_id=posts.id WHERE kind=?';params=[kind]
+   if u['role']!='admin':sql+=' AND (private_posts.post_id IS NULL OR posts.user_id=?)';params.append(u['id'])
    if kind=='qna' and u['role']!='admin':sql+=' AND user_id=?';params.append(u['id'])
    with db() as c:rows=c.execute(sql+' ORDER BY posts.id DESC LIMIT 100',params).fetchall()
    return self.reply(200,{'posts':[{**dict(x),'members':json.loads(x['members']),'replies':json.loads(x['replies'])} for x in rows]})
@@ -190,6 +192,8 @@ class Handler(SimpleHTTPRequestHandler):
   if wiki.post(self,u,d,db):return
   if path=='/api/boards/post':
    kind=d.get('kind');title=d.get('title');body=d.get('body');link=d.get('link','');day=d.get('event_day','')
+   is_private=d.get('is_private',False)
+   if type(is_private)!=bool or (is_private and kind!='suggestions'):return self.reply(400,{'error':'비밀글 설정을 확인해 주세요.'})
    if kind not in ['study','articles','jobs','qna','suggestions'] or not isinstance(title,str) or not 1<=len(title.strip())<=120 or not isinstance(body,str) or not 1<=len(body.strip())<=5000:return self.reply(400,{'error':'제목과 내용을 확인해 주세요.'})
    if kind in ['articles','jobs'] and u['role']!='admin':return self.reply(403,{'error':'기사와 채용 소식은 관리자가 등록합니다.'})
    if not isinstance(link,str) or len(link)>1000 or (link and not re.fullmatch(r'https?://[^\s]+',link)) or not isinstance(day,str) or (day and not re.fullmatch(r'\d{4}-\d{2}-\d{2}',day)):return self.reply(400,{'error':'주소와 날짜를 확인해 주세요.'})
@@ -198,7 +202,8 @@ class Handler(SimpleHTTPRequestHandler):
     except ValueError:return self.reply(400,{'error':'모임 날짜를 선택해 주세요.'})
    with db() as c:
     if kind in ['study','suggestions']:activity.award(c,u['id'],kind+':'+activity.today(),10 if kind=='study' else 5)
-    c.execute('INSERT INTO posts(kind,user_id,title,body,link,event_day,created,members) VALUES(?,?,?,?,?,?,?,?)',(kind,u['id'],title.strip(),body.strip(),link,day,datetime.now(timezone(timedelta(hours=9))).isoformat(),json.dumps([u['id']] if kind=='study' else [])))
+    inserted=c.execute('INSERT INTO posts(kind,user_id,title,body,link,event_day,created,members) VALUES(?,?,?,?,?,?,?,?) RETURNING id',(kind,u['id'],title.strip(),body.strip(),link,day,datetime.now(timezone(timedelta(hours=9))).isoformat(),json.dumps([u['id']] if kind=='study' else []))).fetchone()
+    if is_private:c.execute('INSERT INTO private_posts(post_id) VALUES(?)',(inserted[0],))
    return self.reply(201,{'ok':True})
   if path in ['/api/boards/reply','/api/boards/join']:
    pid=d.get('id')
@@ -206,6 +211,7 @@ class Handler(SimpleHTTPRequestHandler):
    with db() as c:
     c.execute('BEGIN IMMEDIATE')
     post=c.execute('SELECT * FROM posts WHERE id=?',(pid,)).fetchone()
+    if c.execute('SELECT post_id FROM private_posts WHERE post_id=?',(pid,)).fetchone() and (not post or (u['role']!='admin' and post['user_id']!=u['id'])):return self.reply(404,{'error':'게시글을 찾을 수 없습니다.'})
     if not post or (post['kind']=='qna' and u['role']!='admin' and post['user_id']!=u['id']):return self.reply(404,{'error':'게시글을 찾을 수 없습니다.'})
     if path.endswith('/join'):
      if post['kind']!='study':return self.reply(400,{'error':'공부 모임에서만 참여할 수 있습니다.'})

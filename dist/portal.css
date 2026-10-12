@@ -251,3 +251,6 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 
 
 
+.recruitment-stage{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-bottom:1px solid #e5e7eb}.recruitment-stage input{margin-top:5px;min-width:18px;min-height:18px}.recruitment-stage:has(input:disabled){opacity:.65}.recruitment-stages{margin:12px 0}
+#anonymous-compose{flex:0 0 auto;width:auto;min-height:36px;padding:7px 12px;font-size:13px;line-height:20px;border-radius:6px;white-space:nowrap}
+.board-form .board-private-option{display:flex;align-items:center;gap:8px;font-size:14px}.board-private-option input,.meal-status-check input{width:20px;height:20px;accent-color:#0054a0;flex-shrink:0}.meal-status-check{display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border:1px solid #c7d4e0;border-radius:8px;cursor:pointer}.meal-status-check:has(input:checked){background:#e8f3ff;border-color:#0054a0}.meal-profile-grid .meal-status-check{font-weight:400}

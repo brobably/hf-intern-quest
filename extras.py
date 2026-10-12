@@ -1,11 +1,12 @@
 """Member-only playground, anonymous discussions and aggregate usage metrics."""
 import json,secrets,time
 from datetime import datetime,timedelta
-import activity,privacy
+import activity,privacy,recruitment
 
 ROUTES=['','manual-ai','glossary','registry-guide','checklist','wiki','cleaning','lunch','study','articles','jobs','games','reflex','stroop','anonymous']
 COLORS=[('빨강','#ce3e45'),('파랑','#246dd0'),('초록','#278459'),('보라','#8755bb')]
 def initialize(c):
+ recruitment.initialize(c)
  c.executescript("""CREATE TABLE IF NOT EXISTS page_views(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,route TEXT NOT NULL,visited INTEGER NOT NULL);CREATE TABLE IF NOT EXISTS color_runs(token TEXT PRIMARY KEY,user_id INTEGER NOT NULL,answers TEXT NOT NULL,started INTEGER NOT NULL);CREATE TABLE IF NOT EXISTS color_scores(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,week TEXT NOT NULL,correct INTEGER NOT NULL,elapsed INTEGER NOT NULL);CREATE TABLE IF NOT EXISTS anonymous_posts(id INTEGER PRIMARY KEY,user_id INTEGER NOT NULL,title TEXT NOT NULL,body TEXT NOT NULL,created TEXT NOT NULL);CREATE TABLE IF NOT EXISTS anonymous_replies(id INTEGER PRIMARY KEY,post_id INTEGER NOT NULL,user_id INTEGER NOT NULL,parent_id INTEGER NOT NULL DEFAULT 0,body TEXT NOT NULL,created TEXT NOT NULL);CREATE TABLE IF NOT EXISTS anonymous_hearts(post_id INTEGER NOT NULL,user_id INTEGER NOT NULL,PRIMARY KEY(post_id,user_id));CREATE TABLE IF NOT EXISTS anonymous_reports(post_id INTEGER NOT NULL,user_id INTEGER NOT NULL,PRIMARY KEY(post_id,user_id));""")
 def get(h,u,db):
  if h.path=='/api/jobs':
@@ -43,6 +44,7 @@ def get(h,u,db):
   h.reply(200,{'posts':posts});return True
  return False
 def post(h,u,d,db):
+ if recruitment.post(h,u,d,db):return True
  path=h.path
  if path=='/api/page-view':
   route=d.get('route');now=int(time.time())
