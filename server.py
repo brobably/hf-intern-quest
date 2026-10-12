@@ -14,6 +14,7 @@ import privacy
 import extras
 import study
 import updates
+import manual
 BASE=Path(__file__).resolve().parent
 DATA=Path(os.environ.get('HF_DATA',str(BASE/'data')));DATA.mkdir(exist_ok=True)
 DB=DATA/'accounts.sqlite3'
@@ -44,6 +45,7 @@ with db() as c:
  extras.initialize(c)
  c.execute("DELETE FROM page_views WHERE route='pet'")
  study.initialize(c)
+ manual.initialize(c)
  c.execute("UPDATE user_profiles SET department='' WHERE user_id IN (SELECT id FROM users WHERE employee='1234' AND name='이강인' AND role='admin')")
  c.execute("UPDATE wiki_documents SET department='공통' WHERE department='kfa' AND user_id IN (SELECT id FROM users WHERE employee='1234' AND name='이강인')")
  # Apply the explicitly requested account promotions once, preserving later role changes.
@@ -97,6 +99,7 @@ class Handler(SimpleHTTPRequestHandler):
    return self.reply(200,{'user':public(u) if u else None,'setup':setup})
   u=self.user()
   if not u:return self.reply(401,{'error':'로그인이 필요합니다.'})
+  if manual.get(self,u,db):return
   if self.path=='/api/menu-updates':
    with db() as c:signals=updates.snapshot(c,u)
    return self.reply(200,{'signals':signals})
@@ -179,6 +182,7 @@ class Handler(SimpleHTTPRequestHandler):
   with db() as c:private_block=privacy.blocked_mutation(c,u,path,d)
   if private_block:return self.reply(404,{'error':'요청한 항목을 찾을 수 없습니다.'})
   if extras.post(self,u,d,db):return
+  if manual.post(self,u,d,db):return
   if study.post(self,u,d,db):return
   if activity.post(self,u,d,db):return
   if news.post(self,u,d,db):return
