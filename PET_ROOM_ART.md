@@ -114,3 +114,16 @@ Prompt set: `PET_MOTION_PROMPTS.json`. Canonical neutral poses preserve the comp
 Analytical alpha-component bounds and the painted window landmark align frames without modifying generated pixels. Bounds checks protect full roofs and prevent neighboring atlas cells appearing in the character frame. QA covers both directional cycles, crisp blinking, petting, costume changes, four stages and five colors.
 
 Baby anatomy repair: the original right/left peak flying poses were regenerated with a normal torso reference. The extra central under-chin sphere was removed; two original side hands and two feet remain. Both repaired peak poses are retained in playback. No motion frames are skipped or replaced with another pose.
+
+## Motion v4: anatomy and smoother flight
+
+Built-in Imagegen editing produced 28 new intermediate/turn atlases and 20 bag-specific atlases, stored in `dist/bogeumi-motion-v4-*.png`. Prompt records: `PET_MOTION_V4_PROMPTS.json`. Six generated halfway poses and a generated front-facing turn expand the motion sequence, played at 80 ms per frame. No crossfade or bitmap deformation is used.
+
+Bag poses are reviewed separately: one visible connected hand at each outer torso side, two feet beneath; no bag-grabbing third hand or hidden side hand. Rejected generated atlases are repaired before use. Static shop/inventory previews use the same corrected full-costume fly0 frames as the room. The existing five palette filters apply to every frame consistently.
+
+Keep the persistent anatomy acceptance rules in `PET_ART_REQUIREMENTS.md` for future work.
+
+
+October 12 review: 24 additional pose-specific bag sheets repair adult proportions and preserve rigid eyewear. Half blink retains visible pupils. All 720 bag frames and static previews use corrected artwork. Preload only active stage/costume sources before playback.
+
+Final browser review: 48 captures across four stages, five palettes, flight, turn, half/closed blink and petting. Repaired intern-stage eyewear loss in half and closed blink with two additional generated sheets.

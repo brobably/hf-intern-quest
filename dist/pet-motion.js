@@ -1,17 +1,18 @@
 /* Whole-costume motion art: exactly one opaque generated frame is displayed. */
 (()=>{
  'use strict';
- const version='20261008-motion-v3',cache=new Map(),reduced=matchMedia('(prefers-reduced-motion: reduce)');
+ const version='20261012-motion-v4',cache=new Map(),reduced=matchMedia('(prefers-reduced-motion: reduce)');
  let catalogue,active,request=0,attaching=null,flightTime=0,lastTick=0;
  const loaded=fetch(`pet-poses.json?v=${version}`).then(r=>{if(!r.ok)throw Error('Motion manifest unavailable');return r.json();}).then(d=>catalogue=d);
- function preload(stage){
-  if(!cache.has(stage))cache.set(stage,loaded.then(()=>Promise.all(Object.values(catalogue.stages[stage]).map(async p=>{const im=new Image();im.src=`${p.url}?v=${version}`;await im.decode();return im;}))).catch(e=>{cache.delete(stage);throw e;}));
-  return cache.get(stage);
+ function preload(stage,outfit){
+  const key=`${stage}:${outfit}`;
+  if(!cache.has(key))cache.set(key,loaded.then(()=>Promise.all([...new Set(Object.values(catalogue.stages[stage]).map(p=>p.frames[outfit].url||p.url))].map(async url=>{const im=new Image();im.src=`${url}?v=${version}`;await im.decode();return im;}))).catch(e=>{cache.delete(key);throw e;}));
+  return cache.get(key);
  }
  function show(a,pose){
   if(a.pose===pose)return;
   const p=catalogue.stages[a.stage][pose],f=p.frames[a.outfit];
-  a.frame.style.setProperty('--pet-sheet',`url('${p.url}?v=${version}')`);
+  a.frame.style.setProperty('--pet-sheet',`url('${f.url||p.url}?v=${version}')`);
   a.frame.style.setProperty('--pet-idle-size',f.size);
   a.frame.style.setProperty('--pet-idle-position',f.position);
   a.frame.style.setProperty('--pet-idle-clip',f.clip);
@@ -28,8 +29,10 @@
    a.character.style.setProperty('--pet-flight-x',`${reduced.matches?0:42*Math.sin(phase)}%`);
    a.character.style.setProperty('--pet-flight-y',`${reduced.matches?0:-10-7*Math.sin(phase*2)}%`);
    a.character.style.setProperty('--pet-flight-lean',`${reduced.matches?0:4*Math.cos(phase)}deg`);
-   const cycle=direction==='right'?[0,1,2,3,2,1,0]:[4,5,6,7,6,5,4];
-   let pose=reduced.matches?'fly0':`fly${cycle[Math.floor(flightTime/160)%cycle.length]}`;
+   const cycle=direction==='right'?['fly0','mid0','fly1','mid1','fly2','mid2','fly3','mid2','fly2','mid1','fly1','mid0']:['fly4','mid4','fly5','mid5','fly6','mid6','fly7','mid6','fly6','mid5','fly5','mid4'];
+   let pose=reduced.matches?'fly0':cycle[Math.floor(flightTime/80)%cycle.length];
+   // At either edge, slow to a front-facing generated pose before reversing.
+   if(!reduced.matches&&Math.abs(Math.cos(phase))<.065)pose='turn';
    if(reacting){pose='happy';a.nextBlink=t+4500;a.blinkStart=0;}
    else if(room?.classList.contains('is-napping'))pose='blink';
    else if(!reduced.matches){
@@ -47,7 +50,7 @@
   const avatar=document.querySelector('.pet-character .pet-avatar'),frame=avatar?.querySelector('.pet-idle-frame');
   if(!frame||active?.avatar===avatar||attaching===avatar)return;
   attaching=avatar;const stage=Number(avatar.dataset.petStage),outfit=Number(frame.dataset.outfit);
-  try{await preload(stage);if(!avatar.isConnected||attaching!==avatar)return;
+  try{await preload(stage,outfit);if(!avatar.isConnected||attaching!==avatar)return;
    cancelAnimationFrame(request);const character=avatar.closest('.pet-character');
    avatar.querySelectorAll('.pet-pose-frame,.pet-blink-frame,.pet-face').forEach(el=>el.remove());
    frame.style.setProperty('opacity','1','important');
