@@ -585,3 +585,5 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 
 .checklist-date-buttons{display:flex;gap:6px;flex-wrap:wrap}.checklist-history-controls{flex-wrap:wrap}.checklist-date-buttons button{min-height:38px}
 
+.cleaning-group-toolbar{margin:22px 0;align-items:end}.cleaning-group-toolbar label{display:grid;gap:6px;font-size:13px}.cleaning-group-toolbar .field{min-width:220px}.notification-tabs{flex-wrap:wrap}
+

@@ -11,6 +11,7 @@ import meals
 import meal_clubs
 import study_clubs
 import task_history
+import cleaning_groups
 import wiki
 import news
 import privacy
@@ -42,6 +43,7 @@ with db() as c:
    saved['favorites']=[key for key in saved['favorites'] if key!='pet']
    c.execute('UPDATE users SET state=? WHERE id=?',(json.dumps(saved,ensure_ascii=False),account['id']))
  activity.initialize(c)
+ cleaning_groups.initialize(c)
  meals.initialize(c)
  meal_clubs.initialize(c)
  study_clubs.initialize(c)
@@ -115,6 +117,7 @@ class Handler(SimpleHTTPRequestHandler):
   if meals.get(self,u,db):return
   if meal_clubs.get(self,u,db):return
   if study_clubs.get(self,u,db):return
+  if cleaning_groups.get(self,u,db):return
   if task_history.get(self,u,db):return
   if wiki.get(self,u,db):return
   if news.get(self,u,db):return
@@ -193,6 +196,7 @@ class Handler(SimpleHTTPRequestHandler):
   if extras.post(self,u,d,db):return
   if manual.post(self,u,d,db):return
   if study.post(self,u,d,db):return
+  if path.startswith('/api/cleaning/'):return self.reply(403,{'error':'청소 그룹 화면에서 관리해 주세요.'})
   if activity.post(self,u,d,db):return
   if news.post(self,u,d,db):return
   if path=='/api/admin/department':
@@ -208,6 +212,7 @@ class Handler(SimpleHTTPRequestHandler):
   if meals.post(self,u,d,db):return
   if meal_clubs.post(self,u,d,db):return
   if study_clubs.post(self,u,d,db):return
+  if cleaning_groups.post(self,u,d,db):return
   if task_history.post(self,u,d,db):return
   if wiki.post(self,u,d,db):return
   if path=='/api/boards/post':

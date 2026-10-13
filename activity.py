@@ -68,7 +68,8 @@ def get(h,u,db):
  month=today()[:7]
  with db() as c:
   settle_game_rewards(c)
-  materialize_rotations(c,week())
+  import cleaning_groups
+  cleaning_groups.materialize(c)
   rotations=[dict(r) for r in c.execute('SELECT * FROM cleaning_rotations')]
   xp=c.execute('SELECT COALESCE(SUM(amount),0) FROM points WHERE user_id=?',(u['id'],)).fetchone()[0]
   ranking=[dict(r) for r in c.execute("SELECT users.id,users.name,COALESCE(SUM(points.amount),0) AS xp FROM users LEFT JOIN points ON points.user_id=users.id AND points.day LIKE ? WHERE users.status='approved' GROUP BY users.id,users.name ORDER BY xp DESC,users.id",(month+'%',))]
@@ -80,6 +81,8 @@ def get(h,u,db):
    rotations=[r for r in rotations if department and r['department']==department]
    cleaning=[r for r in cleaning if department and r['department']==department]
    members=[r for r in members if department and r['department']==department]
+  cleaning=cleaning_groups.visible_jobs(c,u,personal=True)
+  rotations=[]
   history=[dict(r) for r in c.execute('SELECT event_key,day,amount FROM points WHERE user_id=? ORDER BY day DESC LIMIT 30',(u['id'],))]
   announcements=[dict(r) for r in c.execute('SELECT id,user_id,title,body,created FROM announcements ORDER BY id DESC LIMIT 20')]
   events=[dict(r) for r in c.execute('SELECT id,day,body FROM calendar_events WHERE user_id=? ORDER BY id',(u['id'],))]
