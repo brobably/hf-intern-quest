@@ -363,3 +363,36 @@ main header .auth-link{white-space:nowrap;font-size:13px}
 #terms .glossary-definition p{font-size:14px;line-height:1.8;margin:0 0 10px}
 .glossary-definition .glossary-source{padding-top:0;border:0}
 
+/* Dashboard typography and spacing; retain existing section order and grids. */
+#content.dashboard-view{font-size:14px;line-height:1.65}
+#content.dashboard-view h2{font-size:18px;line-height:1.45;letter-spacing:-.02em;margin-bottom:12px}
+#content.dashboard-view h3{font-size:15px;line-height:1.5}
+#content.dashboard-view .live-hero{padding:26px;gap:24px}
+#content.dashboard-view .hero-summary>p:first-child{font-size:12px;line-height:1.5;letter-spacing:.02em;margin:0 0 8px;color:#d5e4f1}
+#content.dashboard-view .hero-summary h1{font-size:clamp(22px,2.2vw,28px);line-height:1.45;letter-spacing:-.035em;margin:0 0 16px;word-break:keep-all;overflow-wrap:anywhere}
+#content.dashboard-view .hero-tags{gap:8px;margin-bottom:18px}
+#content.dashboard-view .hero-tags button{font-size:12px;line-height:18px;padding:5px 11px}
+#content.dashboard-view .xp-label{font-size:12px;margin-bottom:7px}
+#content.dashboard-view .hero-summary>p:last-child{font-size:12px;line-height:1.6;margin:8px 0 0;color:#d5e4f1}
+#content.dashboard-view .milestone{font-size:12px;line-height:1.5;padding:14px 10px;gap:7px}
+#content.dashboard-view .dashboard-news{margin:20px 0;padding:18px 20px}
+#content.dashboard-view .dashboard-news-head{margin-bottom:8px}
+#content.dashboard-view .dashboard-headline{font-size:14px;line-height:1.6;padding:10px 0;gap:12px}
+#content.dashboard-view .dashboard-headline small{font-size:12px;line-height:1.5}
+#content.dashboard-view .attendance-card{padding:18px 22px;margin-top:20px;gap:14px}
+#content.dashboard-view .attendance-card h2{margin-bottom:4px}
+#content.dashboard-view .attendance-card p{font-size:13px;line-height:1.65}
+#content.dashboard-view .today-meals-card{padding:20px 22px;margin:20px 0}
+#content.dashboard-view .today-meals-card p{font-size:14px;line-height:1.7}
+#content.dashboard-view .dashboard-calendar{padding:22px;margin:20px 0}
+#content.dashboard-view .calendar-heading{margin-bottom:14px;gap:12px}
+#content.dashboard-view .calendar-heading h2{margin:0;font-size:18px}
+#content.dashboard-view .calendar-heading h2 span{font-size:15px}
+#content.dashboard-view .calendar-week{font-size:12px;padding:8px 0}
+#content.dashboard-view .calendar-day{font-size:13px;line-height:1.5}
+#content.dashboard-view .ranking-row{font-size:14px;line-height:1.6;padding-top:12px!important;padding-bottom:12px!important}
+#content.dashboard-view .task-row{font-size:14px;padding-top:12px;padding-bottom:12px}
+#content.dashboard-view .task-title>span{font-size:14px;line-height:1.65}
+#content.dashboard-view .primary{font-size:13px;padding:8px 13px}
+@media(max-width:600px){#content.dashboard-view .live-hero{padding:20px;gap:20px}#content.dashboard-view .hero-summary h1{font-size:22px}#content.dashboard-view .dashboard-news,#content.dashboard-view .attendance-card,#content.dashboard-view .today-meals-card,#content.dashboard-view .dashboard-calendar{padding:16px;margin-top:16px;margin-bottom:16px}#content.dashboard-view .milestone{padding:12px 8px}}
+
