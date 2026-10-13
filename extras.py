@@ -3,7 +3,7 @@ import json,secrets,time
 from datetime import datetime,timedelta
 import activity,privacy,recruitment
 
-ROUTES=['','manual-ai','glossary','registry-guide','checklist','wiki','cleaning','lunch','study','articles','jobs','games','reflex','stroop','anonymous']
+ROUTES=['','manual-ai','glossary','registry-guide','checklist','wiki','cleaning','lunch','study','articles','jobs','games','reflex','stroop','anonymous','qna','suggestions']
 COLORS=[('빨강','#ce3e45'),('파랑','#246dd0'),('초록','#278459'),('보라','#8755bb')]
 def initialize(c):
  recruitment.initialize(c)
@@ -20,12 +20,13 @@ def get(h,u,db):
   eligible="users.role<>'admin' AND users.status='approved' AND users.employee<>?"
   with db() as c:
    rows=[dict(r) for r in c.execute("SELECT route,COUNT(*) AS views,COUNT(DISTINCT page_views.user_id) AS visitors FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible+" GROUP BY route ORDER BY views DESC",(cutoff,privacy.TEST_EMPLOYEE))]
-   daily=[dict(r) for r in c.execute("SELECT date(visited,'unixepoch','+9 hours') AS day,COUNT(*) AS views,COUNT(DISTINCT page_views.user_id) AS visitors FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible+" GROUP BY day ORDER BY day",(cutoff,privacy.TEST_EMPLOYEE))]
+   daily=[dict(r) for r in c.execute("SELECT CAST((visited+32400)/86400 AS BIGINT) AS day,COUNT(*) AS views,COUNT(DISTINCT page_views.user_id) AS visitors FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible+" GROUP BY day ORDER BY day",(cutoff,privacy.TEST_EMPLOYEE))]
    active=c.execute("SELECT COUNT(DISTINCT page_views.user_id) FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible,(cutoff,privacy.TEST_EMPLOYEE)).fetchone()[0]
    weekly=c.execute("SELECT COUNT(DISTINCT page_views.user_id) FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible,(cutoff+23*86400,privacy.TEST_EMPLOYEE)).fetchone()[0]
    members=c.execute("SELECT COUNT(*) FROM users WHERE "+eligible,(privacy.TEST_EMPLOYEE,)).fetchone()[0]
-   repeat=c.execute("SELECT COUNT(*) FROM (SELECT page_views.user_id FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible+" GROUP BY page_views.user_id HAVING COUNT(DISTINCT date(visited,'unixepoch','+9 hours'))>=2)",(cutoff,privacy.TEST_EMPLOYEE)).fetchone()[0]
-   hours=[dict(r) for r in c.execute("SELECT strftime('%H',visited,'unixepoch','+9 hours') AS hour,COUNT(*) AS views FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible+" GROUP BY hour ORDER BY hour",(cutoff,privacy.TEST_EMPLOYEE))]
+   repeat=c.execute("SELECT COUNT(*) FROM (SELECT page_views.user_id FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible+" GROUP BY page_views.user_id HAVING COUNT(DISTINCT CAST((visited+32400)/86400 AS BIGINT))>=2)",(cutoff,privacy.TEST_EMPLOYEE)).fetchone()[0]
+   hours=[dict(r) for r in c.execute("SELECT (CAST((visited+32400)/3600 AS BIGINT)%24) AS hour,COUNT(*) AS views FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible+" GROUP BY hour ORDER BY hour",(cutoff,privacy.TEST_EMPLOYEE))]
+  for r in daily:r['day']=datetime.utcfromtimestamp(r['day']*86400).date().isoformat()
   by_day={r['day']:r for r in daily};daily=[by_day.get((today-timedelta(days=i)).isoformat(),{'day':(today-timedelta(days=i)).isoformat(),'views':0,'visitors':0}) for i in range(29,-1,-1)]
   h.reply(200,{'rows':rows,'days':30,'daily':daily,'hours':hours,'members':members,'active':active,'weekly':weekly,'repeat':repeat,'today':today.isoformat(),'views':sum(r['views'] for r in rows)});return True
  if h.path=='/api/stroop':
