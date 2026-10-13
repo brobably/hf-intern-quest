@@ -283,3 +283,12 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 .anonymous-card>.board-status:empty{display:none}
 @media(max-width:480px){.anonymous-card .anonymous-reply-form{gap:8px}.anonymous-card .anonymous-reply-form .primary{padding:7px 11px}}
 
+/* Glossary sources and quieter sidebar favorites */
+#terms>p.muted{grid-column:1 / -1;margin:0;line-height:1.7;font-size:13px}
+#terms>.extra-actions{grid-column:1 / -1;display:flex;flex-wrap:wrap;justify-content:flex-start;gap:8px;margin:0 0 4px}
+#terms>.extra-actions .auth-link{display:inline-flex;align-items:center;min-height:32px;padding:5px 11px;border:1px solid #e1e9f1;border-radius:8px;background:#f7f9fc;color:#526e87;font-size:12px;line-height:20px;text-decoration:none}
+#terms>.extra-actions .auth-link:hover{background:#edf3f9;border-color:#c5d7e7;color:#0054a0}
+.favorite-toggle{display:inline-flex;align-items:center;justify-content:center;width:30px;height:32px;padding:4px;font-size:18px;line-height:1;border-radius:6px}
+.favorite-toggle:hover{background:#e4edf4}
+.nav-active .favorite-toggle:hover{background:#ffffff1a}
+
