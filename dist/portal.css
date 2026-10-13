@@ -396,3 +396,21 @@ main header .auth-link{white-space:nowrap;font-size:13px}
 .registry-paper{overflow:hidden}
 @media(max-width:600px){main header .auth-tools{gap:6px}.auth-tools>.auth-link{padding:6px;font-size:11px}main header .profile-menu-button{padding:7px 10px}.registry-paper .registry-table-scroll{max-width:100%}}
 
+/* One glossary card per term, with original definitions on demand */
+#terms .glossary-group{align-self:start;padding:18px 20px}
+.glossary-group .glossary-term-head{align-items:center;margin-bottom:10px}
+#terms .glossary-group h2{margin:0}
+.glossary-group .glossary-term-head>small{max-width:48%;white-space:normal;text-align:right}
+.glossary-definitions summary{display:flex;align-items:center;gap:8px;padding:10px 0 2px;font-size:13px;color:#56758e;cursor:pointer;list-style:none}
+.glossary-definitions summary::-webkit-details-marker{display:none}
+.glossary-definitions summary::before{content:'›';font-size:18px;line-height:1;transition:transform .15s}
+.glossary-definitions[open] summary::before{transform:rotate(90deg)}
+.glossary-definitions summary>span{margin-left:auto;padding:1px 7px;background:#edf3f8;border-radius:5px;font-size:11px;color:#688297}
+.glossary-definitions summary:focus-visible{outline:2px solid #327db5;outline-offset:3px;border-radius:4px}
+.glossary-definition-list{margin-top:14px}
+.glossary-definition{padding:16px 0;border-top:1px solid #e5edf4}
+.glossary-definition:last-child{padding-bottom:0}
+#terms .glossary-definition h3{font-size:13px;font-weight:600;color:#345d7b;margin:0 0 8px}
+#terms .glossary-definition p{font-size:14px;line-height:1.8;margin:0 0 10px}
+.glossary-definition .glossary-source{padding-top:0;border:0}
+
