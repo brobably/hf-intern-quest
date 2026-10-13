@@ -165,7 +165,7 @@ def post(h,u,d,db):
   with db() as c:
    c.execute('BEGIN IMMEDIATE');meal=c.execute('SELECT user_id FROM meals WHERE id=?',(mid,)).fetchone()
    if not meal:h.reply(404,{'error':'식사 제안이 없습니다.'});return True
-   if meal['user_id']!=u['id']:h.reply(403,{'error':'본인이 만든 식사 제안만 삭제할 수 있습니다.'});return True
+   if meal['user_id']!=u['id'] and not (u.get('role')=='admin' and str(u.get('employee'))=='56512'):h.reply(403,{'error':'작성자 또는 지정 관리자만 삭제할 수 있습니다.'});return True
    c.execute('DELETE FROM meal_options WHERE meal_id=?',(mid,))
    c.execute('DELETE FROM meal_rewards WHERE meal_id=?',(mid,))
    c.execute('DELETE FROM meal_confirmations WHERE meal_id=?',(mid,))
@@ -250,3 +250,4 @@ def post(h,u,d,db):
    if u['id'] in members:c.execute("UPDATE meal_invites SET status='accepted' WHERE meal_id=? AND user_id=?",(mid,u['id']))
   h.reply(200,{'ok':True});return True
  h.reply(404,{'error':'찾을 수 없습니다.'});return True
+

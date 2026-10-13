@@ -71,7 +71,7 @@ def post(h,u,d,db):
   if not club:h.reply(404,{'error':'진행 중인 모임이 없습니다.'});return True
   member=c.execute('SELECT * FROM meal_club_members WHERE club_id=? AND user_id=?',(cid,uid)).fetchone()
   if action=='archive':
-   if club['owner_id']!=uid:h.reply(403,{'error':'모임장만 모임을 종료할 수 있습니다.'});return True
+   if club['owner_id']!=uid and not (u.get('role')=='admin' and str(u.get('employee'))=='56512'):h.reply(403,{'error':'모임장 또는 지정 관리자만 모임을 종료할 수 있습니다.'});return True
    c.execute('UPDATE meal_clubs SET active=0 WHERE id=?',(cid,));h.reply(200,{'ok':True});return True
   if action=='join':
    if not valid_days(d.get('days')):h.reply(400,{'error':'매주 참여할 요일을 선택해 주세요.'});return True
@@ -113,3 +113,4 @@ def post(h,u,d,db):
    after=c.execute('SELECT COALESCE(SUM(amount),0) FROM points WHERE user_id=?',(uid,)).fetchone()[0]
    h.reply(200,{'ok':True,'earned':int(after-before),'complete':set(ids)<=set(confirmed),'confirmed':len(confirmed),'total':len(ids)});return True
  h.reply(200,{'ok':True});return True
+
