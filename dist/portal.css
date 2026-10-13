@@ -51,7 +51,7 @@ aside { background:#f3f6f9!important; border-color:#dce4eb!important; }
 .hf-brand-symbol { width:42px; height:36px; overflow:hidden; flex-shrink:0; background:transparent; mix-blend-mode:multiply; }
 .hf-brand-symbol img { display:block; height:36px; width:auto; max-width:none; }
 aside>a { gap:10px; } aside>a p:first-child { color:#133c62; }
-.live-hero { background:linear-gradient(120deg,#164b77,#28648b); color:white; border:1px solid #285f85; }
+.live-hero { background:linear-gradient(120deg,#164b77,#28648b)!important; color:white; border:1px solid #285f85; }
 .hero-tags button:first-child { background:#e9f2fa; color:#164b77; }
 .hero-tags button { background:#ffffff18; color:#f5f9ff; }
 .milestone { background:#ffffff0e; color:#dce8f2; border:1px solid #ffffff12; }
@@ -317,57 +317,6 @@ dialog h2{line-height:1.4}
 dialog .field{font-size:14px}
 main header .auth-link{white-space:nowrap;font-size:13px}
 @media(max-width:600px){#content .view-title{font-size:24px}#content .panel{padding:18px}#content .toolbar{align-items:stretch}#content .toolbar>.field{flex:1 1 180px}main header{row-gap:12px}.auth-tools{gap:4px}}
-
-/* A welcoming dashboard: tools first, today's work next, secondary content below */
-#content.dashboard-home{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr);grid-template-areas:"hero hero" "start start" "tasks attendance" "calendar meals" "calendar ranking" "news news";gap:20px;align-items:start}
-.dashboard-home>section{margin:0!important;min-width:0}
-.dashboard-home .dashboard-hero{grid-area:hero;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px;border:1px solid #dce6ef;border-radius:14px;background:#f2f7fc;color:#18354c}
-.dashboard-hero .hero-summary>p:first-child{font-size:12px;color:#5a7891;margin:0}
-.dashboard-hero .hero-summary h1{font-size:26px;line-height:1.4;margin:6px 0 8px;letter-spacing:-.025em}
-.dashboard-hero .dashboard-welcome-copy{font-size:14px;line-height:1.7;color:#60778b;margin:0;max-width:560px}
-.dashboard-progress{width:240px;flex-shrink:0;border-left:1px solid #d9e4ee;padding-left:24px}
-.dashboard-progress .hero-tags{gap:6px;margin:0 0 12px}
-.dashboard-progress .hero-tags button{font-size:11px;padding:4px 8px;color:#32658d;background:#e3edf6}
-.dashboard-progress .hero-tags button:first-child{background:#dceaf6;color:#245a83}
-.dashboard-progress .xp-label{font-size:11px;color:#60778b;margin-bottom:6px}
-.dashboard-progress .xp-track{height:6px;background:#dce7f0}
-.dashboard-progress .xp-track>div{background:#327db5}
-.dashboard-progress>p{font-size:11px;color:#6b8194;margin-top:6px}
-.dashboard-start{grid-area:start}
-.dashboard-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
-.dashboard-section-heading h2{font-size:18px;font-weight:700;margin:0!important}
-.dashboard-section-heading p{margin:4px 0 0}
-.dashboard-section-heading>a{font-size:12px;color:#3675a4;white-space:nowrap}
-.dashboard-shortcuts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.dashboard-shortcuts>a{position:relative;display:flex;flex-direction:column;gap:8px;padding:18px;border:1px solid #dce6ef;border-radius:12px;background:white;transition:background .15s,border-color .15s}
-.dashboard-shortcuts>a:hover{background:#f5f9fd;border-color:#9fc1dd}
-.dashboard-shortcuts small{font-size:11px;color:#82a0b7}
-.dashboard-shortcuts strong{font-size:15px;color:#214965}
-.dashboard-shortcuts span{font-size:12px;color:#6c8193;line-height:1.7}
-.dashboard-shortcuts b{position:absolute;right:16px;top:14px;font-size:14px;font-weight:400;color:#86a0b4}
-.dashboard-home .dashboard-tasks{grid-area:tasks}
-.dashboard-home .attendance-card{grid-area:attendance;background:white;padding:20px;gap:12px}
-.dashboard-home .attendance-card h2{font-size:17px}
-.dashboard-home .attendance-card .primary{white-space:nowrap}
-.dashboard-home #today-meals-card{grid-area:meals}
-.dashboard-home .dashboard-calendar{grid-area:calendar;padding:22px}
-.dashboard-home .dashboard-monthly-ranking{grid-area:ranking}
-.dashboard-home .dashboard-news{grid-area:news}
-.dashboard-home .task-row{gap:10px}
-.dashboard-home .task-title{font-size:14px;line-height:1.65}
-.dashboard-home .task-row>small{font-size:11px;white-space:nowrap}
-.dashboard-home .calendar-heading h2{font-size:18px}
-.dashboard-home .calendar-heading h2 span{font-size:14px;margin-left:8px}
-.dashboard-home .calendar-controls{gap:4px}
-.dashboard-home .calendar-controls button{font-size:11px;padding:6px 8px}
-.dashboard-home .calendar-day,.dashboard-home .calendar-empty{min-height:70px;padding:6px}
-.dashboard-home .calendar-day>span{font-size:13px;width:26px;height:26px}
-.dashboard-home .calendar-day small{font-size:10px;line-height:1.4}
-.dashboard-home .calendar-week{font-size:12px}
-.dashboard-home .ranking-row{font-size:14px;padding:10px 0}
-.dashboard-home .ranking-row small{font-size:12px}
-@media(max-width:1100px){.dashboard-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-home .dashboard-hero{gap:18px}.dashboard-progress{width:210px;padding-left:18px}#content.dashboard-home{grid-template-columns:minmax(0,1fr) minmax(240px,.8fr)}}
-@media(max-width:760px){#content.dashboard-home{grid-template-columns:minmax(0,1fr);grid-template-areas:"hero" "start" "attendance" "tasks" "meals" "calendar" "ranking" "news";gap:16px}.dashboard-home .dashboard-hero{align-items:stretch;flex-direction:column;padding:20px}.dashboard-hero .hero-summary h1{font-size:24px}.dashboard-progress{width:100%;border-left:0;border-top:1px solid #d9e4ee;padding:14px 0 0}.dashboard-progress .hero-tags{margin-bottom:8px}.dashboard-shortcuts>a{padding:14px}.dashboard-shortcuts strong{font-size:14px}.dashboard-shortcuts span{font-size:12px}.dashboard-home .dashboard-calendar{padding:16px}}
 
 /* Regulation glossary with categories, original definitions and bounded page size */
 #terms>.glossary-context,#terms>.glossary-filters,#terms>.glossary-pagination,#terms>.glossary-empty{grid-column:1 / -1}
