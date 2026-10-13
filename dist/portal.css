@@ -425,3 +425,25 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 #content.dashboard-view .calendar-day.is-today{background:#edf4fb}
 #content.dashboard-view .calendar-day.is-today span{background:#0054a0;color:#fff}
 
+/* Restrained supporting palette: warm canvas, teal completion, gold growth. */
+:root{--ui-canvas:#f8f7f4;--ui-success:#34786d;--ui-success-soft:#edf5f2;--ui-growth:#d7b66e}
+body{background:var(--ui-canvas)}
+#root>div{background:var(--ui-canvas)}
+aside{background:#f3f3f0!important;border-color:#e1e3df!important}
+#content.dashboard-view .live-hero{background:linear-gradient(115deg,#204b6a,#35686f)!important;border-color:#376473}
+.live-hero .xp-track>div{background:var(--ui-growth)}
+.live-hero .hero-tags button:first-child{background:#f2e6c9;color:#634e25}
+.live-hero .milestone.earned span{background:#e3efea;color:#34786d}
+#content.dashboard-view .dashboard-news{background:#f4f4f1;border-color:#e2e5df}
+#content.dashboard-view .attendance-card{background:var(--ui-success-soft);border-color:#d5e5df}
+.attendance-card button:disabled{background:#547f75;color:#fff}
+.attendance-mark{color:var(--ui-success)}
+#content .my-ranking{background:#f7f2e7}
+.badge-number{background:#f2e6c9;color:#735c2c}
+.favorite-toggle[aria-pressed=true]{color:#a27d36}
+.nav-active .favorite-toggle[aria-pressed=true]{color:#f0d699}
+#content.dashboard-view .today-meals-card{border-color:#dce5df}
+#content.dashboard-view .today-meals-card h3{color:#386e62}
+.meal-club-day.is-today{background:#edf5f2;border-color:#b9d7cb}
+.meal-club-day.is-today h4>span{color:#34786d}
+
