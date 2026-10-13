@@ -583,3 +583,5 @@ main header::after{display:none}.header-cleaning{order:0;margin-right:0;align-se
 
 .checklist-history-controls{display:flex;align-items:end;gap:12px;margin:20px 0}.checklist-history-controls label{display:grid;gap:6px;font-size:13px;color:#58758c}.checklist-history-controls .field{width:190px;padding:8px 10px}.history-task-row{display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid #e4ebf0;font-size:14px}.history-task-row input{width:19px;height:19px;accent-color:#0054a0;flex-shrink:0}.history-task-row span{flex:1;overflow-wrap:anywhere}.history-task-row small{font-size:12px;color:#6a8296}.history-task-row:has(input:checked) span{color:#6a8296;text-decoration:line-through}.task-today-panel[hidden],#checklist-history-panel[hidden]{display:none}
 
+.checklist-date-buttons{display:flex;gap:6px;flex-wrap:wrap}.checklist-history-controls{flex-wrap:wrap}.checklist-date-buttons button{min-height:38px}
+

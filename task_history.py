@@ -29,7 +29,6 @@ def get(h,u,db):
  day=parse_qs(urlsplit(h.path).query).get('day',[activity.today()])[0]
  try:datetime.strptime(day,'%Y-%m-%d')
  except ValueError:h.reply(400,{'error':'날짜를 확인해 주세요.'});return True
- if day>activity.today():h.reply(400,{'error':'오늘 또는 지난 날짜를 선택해 주세요.'});return True
  with db() as c:
   tasks=json.loads(c.execute('SELECT state FROM users WHERE id=?',(u['id'],)).fetchone()[0]).get('tasks',[])
   capture(c,u['id'],tasks)
