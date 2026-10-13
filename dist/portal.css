@@ -396,3 +396,32 @@ main header .auth-link{white-space:nowrap;font-size:13px}
 #content.dashboard-view .primary{font-size:13px;padding:8px 13px}
 @media(max-width:600px){#content.dashboard-view .live-hero{padding:20px;gap:20px}#content.dashboard-view .hero-summary h1{font-size:22px}#content.dashboard-view .dashboard-news,#content.dashboard-view .attendance-card,#content.dashboard-view .today-meals-card,#content.dashboard-view .dashboard-calendar{padding:16px;margin-top:16px;margin-bottom:16px}#content.dashboard-view .milestone{padding:12px 8px}}
 
+/* Shared color roles: blue actions, slate text, quiet neutral surfaces. */
+:root{
+ --ui-action:#0054a0;--ui-ink:#203348;--ui-muted:#657b90;--ui-soft:#edf4fb;--ui-border:#d5e3f0;
+ --accent-50:.98 .006 250;--accent-100:.95 .016 250;--accent-200:.90 .03 250;--accent-300:.82 .05 250;--accent-400:.70 .08 250;--accent-500:.55 .12 255;--accent-600:.46 .12 255;--accent-700:.39 .10 255;--accent-800:.32 .08 255;--accent-900:.26 .06 255;--accent-950:.20 .04 255;
+ --secondary-300:.82 .035 250;--secondary-400:.70 .05 250;--secondary-600:.48 .08 250;--secondary-700:.40 .07 250;--secondary-900:.26 .045 250;
+ --foreground-50:.98 .003 250;--foreground-100:.95 .005 250;--foreground-200:.90 .008 250;--foreground-300:.82 .012 250;--foreground-400:.70 .016 250;--foreground-800:.31 .02 250;
+}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,.meal-profile-open:focus-visible{outline-color:#4b91ce}
+.live-hero .xp-track{background:#ffffff24}
+.live-hero .xp-track>div{background:#a9d4f7}
+.live-hero .hero-tags button:first-child{background:#e9f2fa;color:#164b77}
+.live-hero .milestone.earned span{background:#d9eafa;color:#0054a0}
+.sidebar-group>summary,.favorite-section>summary{color:#476781}
+.sidebar-group>summary:hover,.favorite-item:hover{background:#e8eff6}
+.favorite-toggle{color:#7c8fa1}
+.favorite-toggle[aria-pressed=true]{color:#0054a0}
+.nav-active .favorite-toggle{color:#fff}
+.progress-notice,.manual-notice{background:#edf4fb;color:#3f6382}
+.badge-number{background:#deebf7;color:#245d8b}
+.attendance-card,.is-attended,.current-stage,.attendance-dates span{background:#edf4fb;border-color:#d5e3f0}
+.attendance-card button:disabled{background:#477ca8;color:#fff}
+#content .cleaning-duty-card{background:#edf4fb;border-color:#d5e3f0}
+.cleaning-duty-icon{background:#deebf7;color:#245d8b}
+.cleaning-name-badge{background:#fff;border-color:#d5e3f0;color:#245d8b}
+#approval-notification{background:#edf4fb;color:#245d8b;border-color:#c5daed}
+#content.dashboard-view .calendar-day small{color:#476781}
+#content.dashboard-view .calendar-day.is-today{background:#edf4fb}
+#content.dashboard-view .calendar-day.is-today span{background:#0054a0;color:#fff}
+
