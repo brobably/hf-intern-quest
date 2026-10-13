@@ -51,7 +51,7 @@ aside { background:#f3f6f9!important; border-color:#dce4eb!important; }
 .hf-brand-symbol { width:42px; height:36px; overflow:hidden; flex-shrink:0; background:transparent; mix-blend-mode:multiply; }
 .hf-brand-symbol img { display:block; height:36px; width:auto; max-width:none; }
 aside>a { gap:10px; } aside>a p:first-child { color:#133c62; }
-.live-hero { background:linear-gradient(120deg,#164b77,#28648b)!important; color:white; border:1px solid #285f85; }
+.live-hero { background:linear-gradient(120deg,#164b77,#28648b); color:white; border:1px solid #285f85; }
 .hero-tags button:first-child { background:#e9f2fa; color:#164b77; }
 .hero-tags button { background:#ffffff18; color:#f5f9ff; }
 .milestone { background:#ffffff0e; color:#dce8f2; border:1px solid #ffffff12; }
@@ -391,4 +391,8 @@ main header .auth-link{white-space:nowrap;font-size:13px}
 .glossary-pagination span{font-size:12px;color:#6d8395}
 .glossary-pagination button:disabled{cursor:default}
 @media(max-width:600px){.glossary-term-head{flex-wrap:wrap}#terms .glossary-term{padding:18px}.glossary-filters>span{width:100%;margin:2px 0 0}}
+
+/* Keep the rotated training watermark inside its document */
+.registry-paper{overflow:hidden}
+@media(max-width:600px){main header .auth-tools{gap:6px}.auth-tools>.auth-link{padding:6px;font-size:11px}main header .profile-menu-button{padding:7px 10px}.registry-paper .registry-table-scroll{max-width:100%}}
 
