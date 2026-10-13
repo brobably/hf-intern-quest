@@ -1,7 +1,7 @@
 """Recurring weekday meal groups with per-week attendance and daily confirmations."""
 import json,re
 from datetime import datetime,timedelta
-import activity
+import activity,privacy
 
 def initialize(c):
  c.execute('CREATE TABLE IF NOT EXISTS meal_clubs(id INTEGER PRIMARY KEY,owner_id INTEGER NOT NULL,name TEXT NOT NULL,restaurant TEXT NOT NULL,slot TEXT NOT NULL,meal_time TEXT NOT NULL,capacity INTEGER NOT NULL,active INTEGER NOT NULL DEFAULT 1)')
@@ -9,6 +9,7 @@ def initialize(c):
  c.execute('CREATE TABLE IF NOT EXISTS meal_club_overrides(club_id INTEGER NOT NULL,user_id INTEGER NOT NULL,week TEXT NOT NULL,days TEXT NOT NULL,PRIMARY KEY(club_id,user_id,week))')
  c.execute('CREATE TABLE IF NOT EXISTS meal_club_dates(club_id INTEGER NOT NULL,day TEXT NOT NULL,members TEXT NOT NULL,rewarded INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(club_id,day))')
  c.execute('CREATE TABLE IF NOT EXISTS meal_club_confirmations(club_id INTEGER NOT NULL,day TEXT NOT NULL,user_id INTEGER NOT NULL,PRIMARY KEY(club_id,day,user_id))')
+ c.execute('CREATE TABLE IF NOT EXISTS meal_club_invites(club_id INTEGER NOT NULL,user_id INTEGER NOT NULL,status TEXT NOT NULL,PRIMARY KEY(club_id,user_id))')
 
 def valid_days(days,empty=False):
  return isinstance(days,list) and (empty or len(days)>0) and len(days)<=5 and all(type(x)==int and 0<=x<5 for x in days)
@@ -35,11 +36,15 @@ def list_clubs(c,u):
    can=day==today and day+'T'+club['meal_time']<=datetime.now(activity.ZONE).strftime('%Y-%m-%dT%H:%M') and u['id'] in ids and len(ids)>=2 and u['id'] not in confirmed
    club['schedule'].append({'day':day,'weekday':i,'members':[{'id':uid,'name':names.get(uid,'회원')} for uid in ids],'confirmed':confirmed,'complete':done,'can_confirm':can,'locked':bool(confirmed)})
   items.append(club)
- return {'clubs':items,'week':week,'today':today}
+ return {'clubs':items,'week':week,'today':today,'users':[dict(r) for r in c.execute("SELECT id,name FROM users WHERE status='approved' AND employee<>?",(privacy.TEST_EMPLOYEE,))]}
 
 def get(h,u,db):
- if h.path!='/api/meal-clubs':return False
- with db() as c:data=list_clubs(c,u)
+ if h.path not in ('/api/meal-clubs','/api/meal-clubs/invitations'):return False
+ with db() as c:
+  data=list_clubs(c,u)
+  if h.path.endswith('/invitations'):
+   pending={r[0] for r in c.execute("SELECT club_id FROM meal_club_invites WHERE user_id=? AND status='pending'",(u['id'],))}
+   data={'invitations':[x for x in data['clubs'] if x['id'] in pending and not any(m['id']==u['id'] for m in x['members'])]}
  h.reply(200,data);return True
 
 def today_meals(c,uid):
@@ -54,7 +59,7 @@ def today_meals(c,uid):
 def post(h,u,d,db):
  if not h.path.startswith('/api/meal-clubs/'):return False
  action=h.path.rsplit('/',1)[-1];uid=u['id']
- if action not in ('create','join','days','leave','archive','complete'):h.reply(404,{'error':'요청을 확인해 주세요.'});return True
+ if action not in ('create','join','days','leave','archive','complete','invite','decline'):h.reply(404,{'error':'요청을 확인해 주세요.'});return True
  if action=='create':
   name=d.get('name','');restaurant=d.get('restaurant','');slot=d.get('slot','lunch');time=d.get('meal_time','');capacity=d.get('capacity');days=d.get('days')
   if not isinstance(name,str) or not 1<=len(name.strip())<=80 or not isinstance(restaurant,str) or not 1<=len(restaurant.strip())<=120 or slot not in ('lunch','dinner') or type(capacity)!=int or not 2<=capacity<=30 or not isinstance(time,str) or not re.fullmatch(r'(?:[01]\d|2[0-3]):[0-5]\d',time) or not valid_days(days):
@@ -70,6 +75,20 @@ def post(h,u,d,db):
   c.execute('BEGIN IMMEDIATE');club=c.execute('SELECT * FROM meal_clubs WHERE id=? AND active=1',(cid,)).fetchone()
   if not club:h.reply(404,{'error':'진행 중인 모임이 없습니다.'});return True
   member=c.execute('SELECT * FROM meal_club_members WHERE club_id=? AND user_id=?',(cid,uid)).fetchone()
+  if action=='invite':
+   if club['owner_id']!=uid:h.reply(403,{'error':'모임장만 회원을 초대할 수 있습니다.'});return True
+   recipients=d.get('recipients')
+   if not isinstance(recipients,list) or not 1<=len(recipients)<=30 or any(type(x)!=int for x in recipients):h.reply(400,{'error':'초대할 회원을 선택해 주세요.'});return True
+   valid={r[0] for r in c.execute("SELECT id FROM users WHERE status='approved' AND employee<>?",(privacy.TEST_EMPLOYEE,))}
+   existing={r[0] for r in c.execute('SELECT user_id FROM meal_club_members WHERE club_id=?',(cid,))}
+   if not set(recipients)<=valid-existing:h.reply(400,{'error':'이미 참여 중이거나 초대할 수 없는 회원입니다.'});return True
+   for person in set(recipients):
+    c.execute("INSERT OR IGNORE INTO meal_club_invites VALUES(?,?,'pending')",(cid,person))
+    c.execute("UPDATE meal_club_invites SET status='pending' WHERE club_id=? AND user_id=?",(cid,person))
+   h.reply(200,{'ok':True});return True
+  if action=='decline':
+   c.execute("UPDATE meal_club_invites SET status='declined' WHERE club_id=? AND user_id=? AND status='pending'",(cid,uid))
+   h.reply(200,{'ok':True});return True
   if action=='archive':
    if club['owner_id']!=uid and not (u.get('role')=='admin' and str(u.get('employee'))=='56512'):h.reply(403,{'error':'모임장 또는 지정 관리자만 모임을 종료할 수 있습니다.'});return True
    c.execute('UPDATE meal_clubs SET active=0 WHERE id=?',(cid,));h.reply(200,{'ok':True});return True
@@ -79,6 +98,7 @@ def post(h,u,d,db):
    count=c.execute("SELECT COUNT(*) FROM meal_club_members m JOIN users u ON u.id=m.user_id WHERE club_id=? AND u.status='approved'",(cid,)).fetchone()[0]
    if count>=club['capacity']:h.reply(409,{'error':'모임 정원이 찼습니다.'});return True
    c.execute('INSERT INTO meal_club_members VALUES(?,?,?,?)',(cid,uid,json.dumps(sorted(set(d['days']))),activity.today()))
+   c.execute("UPDATE meal_club_invites SET status='accepted' WHERE club_id=? AND user_id=?",(cid,uid))
   elif action in ('days','leave'):
    if not member:h.reply(403,{'error':'참여 중인 모임에서만 변경할 수 있습니다.'});return True
    if action=='leave':
