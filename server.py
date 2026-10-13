@@ -10,6 +10,7 @@ import activity
 import meals
 import meal_clubs
 import study_clubs
+import task_history
 import wiki
 import news
 import privacy
@@ -44,6 +45,7 @@ with db() as c:
  meals.initialize(c)
  meal_clubs.initialize(c)
  study_clubs.initialize(c)
+ task_history.initialize(c)
  wiki.initialize(c)
  news.initialize(c)
  extras.initialize(c)
@@ -113,6 +115,7 @@ class Handler(SimpleHTTPRequestHandler):
   if meals.get(self,u,db):return
   if meal_clubs.get(self,u,db):return
   if study_clubs.get(self,u,db):return
+  if task_history.get(self,u,db):return
   if wiki.get(self,u,db):return
   if news.get(self,u,db):return
   if self.path.startswith('/api/boards/'):
@@ -205,6 +208,7 @@ class Handler(SimpleHTTPRequestHandler):
   if meals.post(self,u,d,db):return
   if meal_clubs.post(self,u,d,db):return
   if study_clubs.post(self,u,d,db):return
+  if task_history.post(self,u,d,db):return
   if wiki.post(self,u,d,db):return
   if path=='/api/boards/post':
    kind=d.get('kind');title=d.get('title');body=d.get('body');link=d.get('link','');day=d.get('event_day','')
@@ -269,6 +273,7 @@ class Handler(SimpleHTTPRequestHandler):
      if t[1] and (len(t)<5 or not (t[3]=='daily' or isinstance(t[3],list) and len(t[3])>0) or t[4]==activity.today()) and not old.get(t[0],False):
       count=c.execute("SELECT COUNT(*) FROM points WHERE user_id=? AND day=? AND event_key LIKE 'task:%'",(u['id'],activity.today())).fetchone()[0]
       if count<5:activity.award(c,u['id'],'task:'+activity.today()+':'+hashlib.sha256(t[0].encode()).hexdigest(),5)
+    task_history.capture(c,u['id'],s.get('tasks',[]))
     c.execute('UPDATE users SET state=? WHERE id=?',(json.dumps(s,ensure_ascii=False),u['id']))
    return self.reply(200,{'ok':True})
   if path=='/api/admin/review':
