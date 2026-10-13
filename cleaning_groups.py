@@ -93,6 +93,16 @@ def post(h,u,d,db):
    if job['legacy_id']:c.execute('UPDATE cleaning_jobs SET done=1 WHERE id=?',(job['legacy_id'],))
    h.reply(200,{'ok':True});return True
   if not manage:h.reply(403,{'error':'그룹 관리자만 변경할 수 있습니다.'});return True
+  if action=='rename':
+   name=d.get('name')
+   if not isinstance(name,str) or not 1<=len(name.strip())<=80:h.reply(400,{'error':'그룹 이름은 1~80자로 입력해 주세요.'});return True
+   c.execute('UPDATE cleaning_groups SET name=? WHERE id=?',(name.strip(),gid))
+   h.reply(200,{'ok':True});return True
+  if action=='archive':
+   if not global_admin(u):h.reply(403,{'error':'전체 관리자만 그룹을 삭제할 수 있습니다.'});return True
+   c.execute('UPDATE cleaning_groups SET active=0 WHERE id=?',(gid,))
+   c.execute("UPDATE cleaning_group_invites SET status='cancelled' WHERE group_id=? AND status='pending'",(gid,))
+   h.reply(200,{'ok':True});return True
   members={r[0] for r in c.execute('SELECT user_id FROM cleaning_group_members WHERE group_id=?',(gid,))}
   if action=='invite':
    ids=d.get('recipients')
