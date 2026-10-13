@@ -16,10 +16,18 @@ def get(h,u,db):
   h.reply(200,{'jobs':jobs,'message':'링커리어와 자소설닷컴의 공개 채용 페이지로 이동할 수 있습니다. 자동 수집은 제공처의 접근 제한으로 현재 지원되지 않습니다. 아래에는 회원이 등록한 공고가 표시됩니다.'});return True
  if h.path=='/api/analytics':
   if u['role']!='admin':h.reply(403,{'error':'관리자 전용 페이지입니다.'});return True
-  cutoff=int(time.time())-30*86400
+  now=int(time.time());today=datetime.utcfromtimestamp(now+9*3600).date();cutoff=int(datetime.combine(today-timedelta(days=29),datetime.min.time()).replace(tzinfo=__import__('datetime').timezone.utc).timestamp())-9*3600
+  eligible="users.role<>'admin' AND users.status='approved' AND users.employee<>?"
   with db() as c:
-   rows=[dict(r) for r in c.execute("SELECT route,COUNT(*) AS views,COUNT(DISTINCT page_views.user_id) AS visitors FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND users.role<>'admin' AND users.status='approved' AND users.employee<>? GROUP BY route ORDER BY views DESC",(cutoff,privacy.TEST_EMPLOYEE))]
-  h.reply(200,{'rows':rows,'days':30});return True
+   rows=[dict(r) for r in c.execute("SELECT route,COUNT(*) AS views,COUNT(DISTINCT page_views.user_id) AS visitors FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible+" GROUP BY route ORDER BY views DESC",(cutoff,privacy.TEST_EMPLOYEE))]
+   daily=[dict(r) for r in c.execute("SELECT date(visited,'unixepoch','+9 hours') AS day,COUNT(*) AS views,COUNT(DISTINCT page_views.user_id) AS visitors FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible+" GROUP BY day ORDER BY day",(cutoff,privacy.TEST_EMPLOYEE))]
+   active=c.execute("SELECT COUNT(DISTINCT page_views.user_id) FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible,(cutoff,privacy.TEST_EMPLOYEE)).fetchone()[0]
+   weekly=c.execute("SELECT COUNT(DISTINCT page_views.user_id) FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible,(cutoff+23*86400,privacy.TEST_EMPLOYEE)).fetchone()[0]
+   members=c.execute("SELECT COUNT(*) FROM users WHERE "+eligible,(privacy.TEST_EMPLOYEE,)).fetchone()[0]
+   repeat=c.execute("SELECT COUNT(*) FROM (SELECT page_views.user_id FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible+" GROUP BY page_views.user_id HAVING COUNT(DISTINCT date(visited,'unixepoch','+9 hours'))>=2)",(cutoff,privacy.TEST_EMPLOYEE)).fetchone()[0]
+   hours=[dict(r) for r in c.execute("SELECT strftime('%H',visited,'unixepoch','+9 hours') AS hour,COUNT(*) AS views FROM page_views JOIN users ON users.id=page_views.user_id WHERE visited>=? AND "+eligible+" GROUP BY hour ORDER BY hour",(cutoff,privacy.TEST_EMPLOYEE))]
+  by_day={r['day']:r for r in daily};daily=[by_day.get((today-timedelta(days=i)).isoformat(),{'day':(today-timedelta(days=i)).isoformat(),'views':0,'visitors':0}) for i in range(29,-1,-1)]
+  h.reply(200,{'rows':rows,'days':30,'daily':daily,'hours':hours,'members':members,'active':active,'weekly':weekly,'repeat':repeat,'today':today.isoformat(),'views':sum(r['views'] for r in rows)});return True
  if h.path=='/api/stroop':
   with db() as c:
    rows=[dict(r) for r in c.execute("SELECT color_scores.id,color_scores.user_id,users.name,correct,elapsed FROM color_scores JOIN users ON users.id=color_scores.user_id WHERE week=? AND users.status='approved' AND users.employee<>? ORDER BY correct DESC,elapsed,color_scores.id LIMIT 100",(activity.week(),privacy.TEST_EMPLOYEE))]
@@ -99,3 +107,5 @@ def post(h,u,d,db):
     else:h.reply(404,{'error':'요청을 확인해 주세요.'});return True
   h.reply(200,{'ok':True});return True
  return False
+
+
